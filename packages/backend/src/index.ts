@@ -64,7 +64,8 @@ backend.add(import('@backstage/plugin-kubernetes-backend'));
 backend.add(import('@backstage/plugin-notifications-backend'));
 backend.add(import('@backstage/plugin-signals-backend'));
 
-// static-data plugin - inline registration for development
-backend.add(import('../../../plugins/static-data-backend/src/index'));
+// static-data plugin and module
+backend.add(import('../../../plugins/static-data-backend/src/index')); // HTTP routes plugin
+backend.add(import('../../../plugins/static-data-backend/src/module')); // Catalog module - expects default export
 
 backend.start();

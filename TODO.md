@@ -1,4 +1,18 @@
-# Backstage Project Milestones
+
+# Backstage Project Milestones & Action Items
+## Immediate Action Items (as of 2025-10-11)
+
+ 
+# Consolidated TODOs (as of 2025-10-11)
+
+- [ ] Fix the static-data refresh button UX so it’s visible and working in the UI
+- [ ] Add manual refresh button to Backstage UI (trigger /api/static-data/refresh)
+- [ ] Display last sync time in Backstage UI (update after each refresh)
+- [ ] Add sidebar navigation entries for BIAN entities (Domain, System, Component, etc.)
+- [ ] Integrate Kafka topology into Backstage
+- [ ] Create new BIAN entities (landscape diagrams, references, etc.)
+
+
 
 ## Milestone 1: Backstage App Setup
 - [x] Set up Backstage app with core plugins (catalog, search, docs, etc.)
@@ -35,6 +49,7 @@
 - JSON files: `data/squads.json`, `data/bounded-contexts.json`, `data/applications.json` ✅
 - Update frequency: ~once per day (manual trigger for now)
 - Volume: 2 squads, 2 bounded contexts, 2 applications (sample data) ✅
+
 
 **Entity Mapping:**
 - Squads → Backstage `Group` entities ✅
@@ -77,14 +92,8 @@ plugins/static-data-backend/
 - [x] Tested with curl - returns `{"imported": 6, "errors": []}` ✅
 - [x] Entities written to file at `packages/backend/static-data-out/entities-{timestamp}.json` ✅
 
+
 ### Next Steps (Phase 2)
-- [ ] **Catalog Integration**: Replace file writing with direct catalog API upsert
-  - [ ] Update provider to use Backstage catalog client
-  - [ ] Implement entity upsert logic (create/update existing entities)
-  - [ ] Add entity deletion for removed items
-  - [ ] Handle relationships (squad ownership, app context)
-  - [ ] Test entities appear in UI catalog
-  
 - [ ] **Configuration via app-config.yaml**:
   ```yaml
   staticData:
@@ -100,33 +109,25 @@ plugins/static-data-backend/
       enabled: true
       schedule: '0 */6 * * *'  # Every 6 hours
   ```
-  
+
 - [ ] **Scheduled Auto-Refresh**:
   - [ ] Implement cron scheduling with node-cron
   - [ ] Make schedule configurable via app-config
   - [ ] Add option to disable auto-refresh
   - [ ] Log scheduled refresh results
-  
-- [ ] **Frontend UI Development**:
-  - [ ] Create admin page at `/admin/static-data`
-  - [ ] Add "Refresh Now" button
-  - [ ] Display last sync time and status
-  - [ ] Show import statistics (entities imported, errors)
-  - [ ] Add loading spinner during refresh
-  - [ ] Show error details if refresh fails
-  
+
 - [ ] **Enhanced Error Handling**:
   - [ ] Retry logic for transient GitHub API failures
   - [ ] Rate limit detection and backoff
   - [ ] Detailed validation error messages per entity
   - [ ] Alerting/notifications on repeated failures
-  
+
 - [ ] **Testing**:
   - [ ] Unit tests for schemas, transformers, provider
   - [ ] Integration tests for GitHub fetcher
   - [ ] E2E test for full refresh flow
   - [ ] Test with full production data volume (~250 apps)
-  
+
 - [ ] **Documentation**:
   - [ ] Update README with plugin usage
   - [ ] Document environment variables
