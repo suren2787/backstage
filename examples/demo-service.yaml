@@ -7,4 +7,3 @@ spec:
   type: service
   owner: user:guest
   lifecycle: experimental
-yarn add -D dotenv-cli
