@@ -27,93 +27,112 @@
 	- Tested with `demo-service` entity - successfully persisted and queried from PostgreSQL
 	- Data survives backend restarts
 
-## Milestone 3: Custom Entity Provider for static-data Repository
+## Milestone 3: Custom Entity Provider for static-data Repository ✅ IN PROGRESS
 **Goal**: Import and sync entities from private static-data repository (squads, bounded contexts, applications)
 
 **Data Sources:**
-- Private GitHub repo: `static-data`
-- JSON files: `data/squads.json`, `data/bounded-contexts.json`, `data/applications.json`
-- Update frequency: ~once per day
-- Volume: ~15 squads, ~35 bounded contexts, ~250 applications
+- Private GitHub repo: `suren2787/static-data` ✅
+- JSON files: `data/squads.json`, `data/bounded-contexts.json`, `data/applications.json` ✅
+- Update frequency: ~once per day (manual trigger for now)
+- Volume: 2 squads, 2 bounded contexts, 2 applications (sample data) ✅
 
 **Entity Mapping:**
-- Squads → Backstage `Group` entities
-- Bounded Contexts → Backstage `Domain` entities
-- Applications → Backstage `Component` entities
+- Squads → Backstage `Group` entities ✅
+- Bounded Contexts → Backstage `Domain` entities ✅
+- Applications → Backstage `Component` entities ✅
 
-### Backend Plugin Development
-- [ ] Create backend plugin: `backstage-plugin-static-data-backend`
-  - [ ] Set up plugin structure and dependencies
-  - [ ] Implement GitHub API client for private repo access (using GitHub token)
-  - [ ] Port Python transformation logic to TypeScript
-  - [ ] Add JSON schema validation before processing
-  - [ ] Create entity provider with configurable scheduled refresh
-  - [ ] Expose manual refresh API endpoint (`POST /api/static-data/refresh`)
-  - [ ] Add error handling for GitHub API failures and invalid JSON
-  - [ ] Make all settings configurable via `app-config.yaml`:
-    - Refresh schedule/interval (e.g., every 15 minutes)
-    - GitHub repository URL
-    - GitHub branch (e.g., main, master)
-    - JSON file paths (squads.json, bounded-contexts.json, applications.json)
-    - Enable/disable automatic refresh
-    - Enable/disable manual refresh endpoint
-    - Timeout settings for GitHub API calls
-    - Entity naming conventions and prefixes
+### Backend Plugin Development ✅ COMPLETE
+- [x] Create backend plugin: `@suren/static-data-backend`
+  - [x] Set up plugin structure at `plugins/static-data-backend/` ✅
+  - [x] Implemented GitHub API client using `@octokit/rest` ✅
+  - [x] Created TypeScript transformers (applicationToComponent, squadToGroup, boundedContextToDomain) ✅
+  - [x] Added AJV JSON schema validation ✅
+  - [x] Exposed manual refresh API endpoint (`POST /api/static-data/refresh`) ✅
+  - [x] Added error handling and logging ✅
+  - [x] Successfully tested with sample data (6 entities imported) ✅
 
-### Backend Integration
-- [ ] Integrate entity provider with Backstage backend
-  - [ ] Register provider in `packages/backend/src/index.ts`
-  - [ ] Add GitHub access token to `.env` (STATIC_DATA_GITHUB_TOKEN)
-  - [ ] Configure all settings in `app-config.yaml`:
-    ```yaml
-    staticData:
-      github:
-        repo: 'owner/static-data'
-        branch: 'main'
-        token: ${STATIC_DATA_GITHUB_TOKEN}
-      files:
-        squads: 'data/squads.json'
-        boundedContexts: 'data/bounded-contexts.json'
-        applications: 'data/applications.json'
-      refresh:
-        enabled: true
-        schedule: '*/15 * * * *'  # Every 15 minutes (cron format)
-        timeout: 30000  # 30 seconds
-      manualRefresh:
-        enabled: true
-    ```
-  - [ ] Test automatic refresh on schedule
-  - [ ] Test configuration changes (different intervals, file paths)
-  - [ ] Verify entities appear in catalog database
+**Plugin Structure:**
+```
+plugins/static-data-backend/
+├── package.json (name: @suren/static-data-backend)
+├── tsconfig.json
+└── src/
+    ├── index.ts        # Plugin registration using createBackendPlugin
+    ├── router.ts       # Express router with /refresh endpoint
+    ├── provider.ts     # StaticDataProvider class with refresh() logic
+    ├── fetcher.ts      # GitHub file fetching with Octokit
+    ├── schemas.ts      # AJV validation schemas
+    └── transformer.ts  # JSON → Backstage entity mappers
+```
 
-### Frontend UI Development
-- [ ] Create frontend UI for manual refresh
-  - [ ] Add "Refresh Static Data" button to catalog or admin page
+### Backend Integration ✅ COMPLETE
+- [x] Registered plugin in `packages/backend/src/index.ts` ✅
+- [x] Added environment variables to `.env`: ✅
+  - `STATIC_DATA_GITHUB_TOKEN=ghp_...` (Personal Access Token with repo scope)
+  - `STATIC_DATA_REPO=suren2787/static-data`
+  - `STATIC_DATA_BRANCH=master`
+  - `STATIC_DATA_WRITE=true` (writes to `static-data-out/entities-*.json`)
+- [x] Plugin successfully loads and initializes ✅
+- [x] API endpoint working: `POST http://localhost:7007/api/static-data/refresh` ✅
+- [x] Tested with curl - returns `{"imported": 6, "errors": []}` ✅
+- [x] Entities written to file at `packages/backend/static-data-out/entities-{timestamp}.json` ✅
+
+### Next Steps (Phase 2)
+- [ ] **Catalog Integration**: Replace file writing with direct catalog API upsert
+  - [ ] Update provider to use Backstage catalog client
+  - [ ] Implement entity upsert logic (create/update existing entities)
+  - [ ] Add entity deletion for removed items
+  - [ ] Handle relationships (squad ownership, app context)
+  - [ ] Test entities appear in UI catalog
+  
+- [ ] **Configuration via app-config.yaml**:
+  ```yaml
+  staticData:
+    github:
+      repo: ${STATIC_DATA_REPO}
+      branch: ${STATIC_DATA_BRANCH}
+      token: ${STATIC_DATA_GITHUB_TOKEN}
+    files:
+      squads: 'data/squads.json'
+      boundedContexts: 'data/bounded-contexts.json'
+      applications: 'data/applications.json'
+    refresh:
+      enabled: true
+      schedule: '0 */6 * * *'  # Every 6 hours
+  ```
+  
+- [ ] **Scheduled Auto-Refresh**:
+  - [ ] Implement cron scheduling with node-cron
+  - [ ] Make schedule configurable via app-config
+  - [ ] Add option to disable auto-refresh
+  - [ ] Log scheduled refresh results
+  
+- [ ] **Frontend UI Development**:
+  - [ ] Create admin page at `/admin/static-data`
+  - [ ] Add "Refresh Now" button
   - [ ] Display last sync time and status
-  - [ ] Show entity counts (squads, bounded contexts, applications)
-  - [ ] Handle loading states and error messages
-  - [ ] Add confirmation dialog for manual refresh
-
-### Testing and Verification
-- [ ] Test entity imports
-  - [ ] Verify all squads imported as Group entities
-  - [ ] Verify all bounded contexts imported as Domain entities
-  - [ ] Verify all applications imported as Component entities
-  - [ ] Verify relationships: squads own bounded contexts, apps belong to contexts
-  - [ ] Verify GitHub team annotations on squads
-- [ ] Test refresh functionality
-  - [ ] Test manual refresh via UI button
-  - [ ] Verify automatic refresh works on schedule
-  - [ ] Test error handling (invalid JSON, GitHub API rate limits, network failures)
-  - [ ] Test incremental updates (add/modify/delete entities)
-
-### Documentation
-- [ ] Document the integration
-  - [ ] Update README with static-data integration details
-  - [ ] Document entity mapping (JSON structure → Backstage entities)
-  - [ ] Add setup instructions for GitHub token and configuration
-  - [ ] Document manual refresh feature
-  - [ ] Add troubleshooting guide for common issues
+  - [ ] Show import statistics (entities imported, errors)
+  - [ ] Add loading spinner during refresh
+  - [ ] Show error details if refresh fails
+  
+- [ ] **Enhanced Error Handling**:
+  - [ ] Retry logic for transient GitHub API failures
+  - [ ] Rate limit detection and backoff
+  - [ ] Detailed validation error messages per entity
+  - [ ] Alerting/notifications on repeated failures
+  
+- [ ] **Testing**:
+  - [ ] Unit tests for schemas, transformers, provider
+  - [ ] Integration tests for GitHub fetcher
+  - [ ] E2E test for full refresh flow
+  - [ ] Test with full production data volume (~250 apps)
+  
+- [ ] **Documentation**:
+  - [ ] Update README with plugin usage
+  - [ ] Document environment variables
+  - [ ] Add troubleshooting guide
+  - [ ] Document entity mapping details
+  - [ ] Add architecture diagram
 
 ## Milestone 4: Integrate Kafka-Topology Plugin
 - [ ] Review your existing Kafka-topology plugin

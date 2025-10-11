@@ -1,0 +1,68 @@
+[
+  {
+    "apiVersion": "backstage.io/v1alpha1",
+    "kind": "Component",
+    "metadata": {
+      "name": "payment-gateway",
+      "title": "Payment Gateway",
+      "description": "Gateway service for processing payments"
+    },
+    "spec": {
+      "type": "service",
+      "owner": "unknown"
+    }
+  },
+  {
+    "apiVersion": "backstage.io/v1alpha1",
+    "kind": "Component",
+    "metadata": {
+      "name": "order-api",
+      "title": "Order API",
+      "description": "API for order management"
+    },
+    "spec": {
+      "type": "service",
+      "owner": "unknown"
+    }
+  },
+  {
+    "apiVersion": "backstage.io/v1alpha1",
+    "kind": "Group",
+    "metadata": {
+      "name": "payments-squad",
+      "title": "Payments Squad"
+    },
+    "spec": {
+      "type": "team",
+      "children": []
+    }
+  },
+  {
+    "apiVersion": "backstage.io/v1alpha1",
+    "kind": "Group",
+    "metadata": {
+      "name": "orders-squad",
+      "title": "Orders Squad"
+    },
+    "spec": {
+      "type": "team",
+      "children": []
+    }
+  },
+  {
+    "apiVersion": "backstage.io/v1alpha1",
+    "kind": "Domain",
+    "metadata": {
+      "name": "payments",
+      "title": "Payments"
+    }
+  },
+  {
+    "apiVersion": "backstage.io/v1alpha1",
+    "kind": "Domain",
+    "metadata": {
+      "name": "orders",
+      "title": "Orders"
+    }
+  }
+]
