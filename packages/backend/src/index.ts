@@ -64,4 +64,7 @@ backend.add(import('@backstage/plugin-kubernetes-backend'));
 backend.add(import('@backstage/plugin-notifications-backend'));
 backend.add(import('@backstage/plugin-signals-backend'));
 
+// static-data plugin - inline registration for development
+backend.add(import('../../../plugins/static-data-backend/src/index'));
+
 backend.start();

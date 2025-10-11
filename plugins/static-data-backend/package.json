@@ -1,0 +1,19 @@
+{
+  "name": "@suren/static-data-backend",
+  "version": "0.0.0",
+  "private": true,
+  "main": "lib/index.js",
+  "types": "src/index.ts",
+  "scripts": {
+  "build": "yarn tsc -p tsconfig.json",
+    "lint": "eslint . --ext .ts",
+    "test": "node --version"
+  },
+  "dependencies": {
+    "@backstage/backend-common": "^0.18.0",
+    "@octokit/rest": "^22.0.0",
+    "ajv": "^8.12.0",
+    "express": "^4.18.2",
+    "node-cron": "^4.2.1"
+  }
+}
