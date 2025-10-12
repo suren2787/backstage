@@ -1,3 +1,42 @@
+// Map applications.json structure to Backstage Component entity
+// Mapping:
+// id -> metadata.name
+// name -> metadata.title
+// description -> metadata.description
+// url -> metadata.annotations["backstage.io/source-location"] (with 'url:' prefix)
+// status -> spec.lifecycle
+// supportedBySquadsIds[0] -> spec.owner
+// inContextOfBoundedContextId -> spec.system
+// applicationType -> spec.tags
+
+export function applicationJsonToComponentEntity(app: any): Entity {
+  const annotations: Record<string, string> = {
+    'backstage.io/managed-by-location': 'static-data:import',
+    'backstage.io/managed-by-origin-location': 'static-data:import',
+  };
+  if (app.url) {
+    // Add source-location annotation, ensure no duplicate 'url:'
+    const url = app.url.startsWith('url:') ? app.url : `url:${app.url}`;
+    annotations['backstage.io/source-location'] = url;
+  }
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'Component',
+    metadata: {
+      name: app.id,
+      title: app.name,
+      description: app.description,
+      annotations,
+    },
+    spec: {
+      type: app.applicationType || 'service',
+      lifecycle: app.status || 'production',
+      owner: Array.isArray(app.supportedBySquadsIds) && app.supportedBySquadsIds.length > 0 ? app.supportedBySquadsIds[0] : 'unknown',
+      system: app.inContextOfBoundedContextId || undefined,
+      tags: app.applicationType ? [app.applicationType] : [],
+    },
+  } as Entity;
+}
 // Domain transformer: maps a domain JSON object to a Backstage Domain entity
 export function domainToDomain(domain: any): Entity {
   const owner = domain.owner ?? 'unknown';
@@ -21,29 +60,38 @@ export function domainToDomain(domain: any): Entity {
 import { Entity } from '@backstage/catalog-model';
 
 export function applicationToComponent(app: any): Entity {
-  const metadata = {
-    name: app.id,
-    title: app.name,
-    description: app.description,
-    annotations: {
-      'backstage.io/managed-by-location': 'static-data:import',
-      'backstage.io/managed-by-origin-location': 'static-data:import',
-    },
+  // Map applications.json structure to Backstage Component entity
+  // id -> metadata.name
+  // name -> metadata.title
+  // description -> metadata.description
+  // url -> metadata.annotations["backstage.io/source-location"] (with 'url:' prefix)
+  // status -> spec.lifecycle
+  // supportedBySquadsIds[0] -> spec.owner
+  // inContextOfBoundedContextId -> spec.system
+  // applicationType -> spec.tags
+  const annotations: Record<string, string> = {
+    'backstage.io/managed-by-location': 'static-data:import',
+    'backstage.io/managed-by-origin-location': 'static-data:import',
   };
-
-  // BIAN: Component (microservice) belongs to a system (bounded context) and is owned by a squad
-  const owner = app.owner ?? 'unknown';
-  const system = app.system ?? undefined; // system = bounded context id
-
+  if (app.url) {
+    const url = app.url.startsWith('url:') ? app.url : `url:${app.url}`;
+    annotations['backstage.io/source-location'] = url;
+  }
   return {
     apiVersion: 'backstage.io/v1alpha1',
     kind: 'Component',
-    metadata,
+    metadata: {
+      name: app.id,
+      title: app.name,
+      description: app.description,
+      annotations,
+    },
     spec: {
-      type: 'service',
-      lifecycle: 'production',
-      owner: owner,
-      system: system,
+      type: app.applicationType || 'service',
+      lifecycle: app.status || 'production',
+      owner: Array.isArray(app.supportedBySquadsIds) && app.supportedBySquadsIds.length > 0 ? app.supportedBySquadsIds[0] : 'unknown',
+      system: app.inContextOfBoundedContextId || undefined,
+      tags: app.applicationType ? [app.applicationType] : [],
     },
   } as Entity;
 }
@@ -73,7 +121,7 @@ export function boundedContextToDomain(bc: any): Entity {
   // If bc.type === 'domain', treat as Domain, else as System
   if (bc.type === 'domain' || (!bc.system && !bc.domain)) {
     // Domain entity
-    const owner = bc.owner ?? 'unknown';
+    const owner = bc.ownerSquadId ?? 'unknown';
     return {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'Domain',
@@ -92,7 +140,8 @@ export function boundedContextToDomain(bc: any): Entity {
     } as Entity;
   } else {
     // System entity (bounded context)
-    const owner = bc.owner ?? 'unknown';
+    // Use ownerSquadId field from bounded-contexts.json
+    const owner = bc.ownerSquadId ?? 'unknown';
     const domain = bc.domain ?? undefined;
     return {
       apiVersion: 'backstage.io/v1alpha1',
