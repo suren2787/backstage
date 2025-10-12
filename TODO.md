@@ -5,11 +5,18 @@
  
 # Consolidated TODOs (as of 2025-10-11)
 
-- [x] Fix the static-data refresh button UX so it’s visible and working in the UI ✅
+- [x] Fix the static-data refresh button UX so it's visible and working in the UI ✅
 - [x] Add manual refresh button to Backstage UI (trigger /api/static-data/refresh) ✅
 - [x] Display last sync time in Backstage UI (update after each refresh) ✅
 - [x] Add sidebar navigation entries for BIAN entities (Domain, System, Component, etc.) ✅
-- [ ] Integrate Kafka topology into Backstage
+- [x] Integrate Kafka topology into Backstage ✅
+  - [x] Create kafka-topology-backend plugin with database integration ✅
+  - [x] Update frontend to load data from backend API instead of GitHub/fallback ✅
+  - [x] Configure GitHub integration to fetch contracts from static-data repo ✅
+  - [x] Support bounded context subdirectories (creditcards, payments, etc.) ✅
+  - [x] Implement unified refresh mechanism for both static-data and contracts ✅
+  - [x] Add sidebar navigation entry for Kafka Topology page ✅
+  - [x] Successfully load all 7 bounded contexts to database ✅
 - [ ] Create new BIAN entities (landscape diagrams, references, etc.)
 
 
@@ -138,7 +145,78 @@ plugins/static-data-backend/
   - [ ] Document entity mapping details
   - [ ] Add architecture diagram
 
-## Milestone 4: Integrate Kafka-Topology Plugin
-- [ ] Review your existing Kafka-topology plugin
-- [ ] Integrate it into the Backstage app
-- [ ] Test and document the integration
+## Milestone 4: Integrate Kafka-Topology Plugin ✅ COMPLETE
+**Goal**: Integrate Kafka topology visualization into Backstage with database backend
+
+**Data Sources:**
+- Private GitHub repo: `suren2787/static-data` ✅
+- YAML files: `contracts/{bounded-context}/topics.yaml` ✅
+- Bounded contexts: creditcards, customertransactions, deposits, iam, loan, onboarding, payments ✅
+- Update frequency: Manual refresh via unified refresh button ✅
+
+### Backend Plugin Development ✅ COMPLETE
+- [x] Create backend plugin: `kafka-topology-backend` ✅
+  - [x] Set up plugin structure at `plugins/kafka-topology-backend/` ✅
+  - [x] Implemented GitHub API client with bounded context traversal ✅
+  - [x] Created database table `kafka_topology` for storing contracts data ✅
+  - [x] Exposed API endpoints (`GET /`, `POST /refresh`) ✅
+  - [x] Added error handling and logging ✅
+  - [x] Successfully tested with 7 bounded contexts ✅
+
+**Plugin Structure:**
+```
+plugins/kafka-topology-backend/
+├── package.json (name: kafka-topology-backend)
+├── README.md
+└── src/
+    ├── index.ts        # Plugin registration using createBackendPlugin
+    ├── github.ts       # GitHub API integration with subdirectory traversal
+    ├── types.ts        # TypeScript interfaces
+    └── migrations/     # Database table creation
+```
+
+### Frontend Integration ✅ COMPLETE
+- [x] Updated existing kafka-topology plugin to use backend API ✅
+- [x] Removed all fallback/mock data dependencies ✅
+- [x] Created API service layer (`src/api/kafkaTopologyApi.ts`) ✅
+- [x] Added refresh button functionality in UI ✅
+- [x] Integrated with Backstage sidebar navigation ✅
+
+### Backend Integration ✅ COMPLETE
+- [x] Registered plugin in `packages/backend/src/index.ts` ✅
+- [x] Added configuration to `app-config.yaml`: ✅
+  ```yaml
+  integrations:
+    kafkaTopology:
+      githubOwner: "suren2787"
+      githubRepo: "static-data"
+      githubBranch: "master"
+      githubPath: "contracts"
+      githubToken: ${STATIC_DATA_GITHUB_TOKEN}
+  ```
+- [x] Plugin successfully loads and initializes ✅
+- [x] API endpoints working: `GET/POST http://localhost:7007/api/kafka-topology/` ✅
+- [x] Database integration successful - 7 contexts loaded ✅
+
+### Unified Refresh Mechanism ✅ COMPLETE
+- [x] Updated refresh button to call both static-data and kafka-topology endpoints ✅
+- [x] Unified UI showing "Refresh All Data" instead of separate refresh buttons ✅
+- [x] Updated Settings page to reflect both data sources ✅
+- [x] Success feedback shows results from both refresh operations ✅
+
+### Configuration Integration ✅ COMPLETE
+- [x] **Configuration via app-config.yaml** ✅
+  - Kafka topology configuration added to integrations section
+  - Uses same GitHub token as static-data integration
+  - Configuration structure:
+    ```yaml
+    integrations:
+      kafkaTopology:
+        githubOwner: "suren2787"
+        githubRepo: "static-data"
+        githubBranch: "master"
+        githubPath: "contracts"
+        githubToken: ${STATIC_DATA_GITHUB_TOKEN}
+    ```
+
+## Milestone 5: Future Enhancements
