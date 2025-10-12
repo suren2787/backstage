@@ -1,0 +1,10 @@
+- name: card-issued
+  producers:
+    - CardService
+  consumers:
+    - NotificationService
+- name: card-activated
+  producers:
+    - CardService
+  consumers:
+    - FraudDetectionService

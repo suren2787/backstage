@@ -1,0 +1,6 @@
+- name: customer-onboarded
+  producers:
+    - OnboardingService
+  consumers:
+    - NotificationService
+    - IAMService

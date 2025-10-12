@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kafka Topology Plugin Demo (Legacy)</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: #1976d2;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .content {
+            padding: 20px;
+            min-height: 400px;
+        }
+        .topic-node {
+            display: inline-block;
+            background: #ff6b6b;
+            color: white;
+            padding: 10px 15px;
+            margin: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .service-node {
+            display: inline-block;
+            background: #4ecdc4;
+            color: white;
+            padding: 8px 12px;
+            margin: 5px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .details-panel {
+            background: #fafafa;
+            border: 1px solid #eee;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        .arrow {
+            color: #666;
+            margin: 0 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Kafka Topology Plugin Demo (Legacy)</h1>
+            <p>This is a simple static demo. For full interactive visualization, use the Vite/React app (<code>yarn dev</code>).</p>
+        </div>
+        <div id="root" class="content"></div>
+    </div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        // Sample topic data
+        const sampleTopics = [
+            {
+                name: 'topic1',
+                partitions: 3,
+                logCompaction: true,
+                producers: ['serviceA', 'serviceB'],
+                consumers: ['serviceC', 'serviceD']
+            },
+            {
+                name: 'topic2',
+                partitions: 2,
+                logCompaction: false,
+                producers: ['serviceE'],
+                consumers: ['serviceA', 'serviceF']
+            }
+        ];
+
+        function TopologyDemo() {
+            const [selectedTopic, setSelectedTopic] = useState(null);
+
+            const topicMeta = selectedTopic 
+                ? sampleTopics.find(t => t.name === selectedTopic)
+                : null;
+
+            return (
+                <div>
+                    <h2>Kafka Topics and Services</h2>
+                    <p>Click on a topic to see its details</p>
+                    
+                    <div style={{ marginBottom: '30px' }}>
+                        <h3>Topics</h3>
+                        {sampleTopics.map(topic => (
+                            <div 
+                                key={topic.name}
+                                className="topic-node"
+                                onClick={() => setSelectedTopic(topic.name)}
+                                style={{ 
+                                    backgroundColor: selectedTopic === topic.name ? '#e74c3c' : '#ff6b6b'
+                                }}
+                            >
+                                {topic.name}
+                            </div>
+                        ))}
+                    </div>
+
+                    <div style={{ marginBottom: '30px' }}>
+                        <h3>Services</h3>
+                        {[...new Set([
+                            ...sampleTopics.flatMap(t => t.producers),
+                            ...sampleTopics.flatMap(t => t.consumers)
+                        ])].map(service => (
+                            <div key={service} className="service-node">
+                                {service}
+                            </div>
+                        ))}
+                    </div>
+
+                    <div>
+                        <h3>Relationships</h3>
+                        {sampleTopics.map(topic => (
+                            <div key={topic.name} style={{ marginBottom: '15px' }}>
+                                <strong>{topic.name}:</strong>
+                                <div style={{ marginLeft: '20px' }}>
+                                    <div>
+                                        Producers: {topic.producers.join(', ')} 
+                                        <span className="arrow">→</span> 
+                                        <strong>{topic.name}</strong>
+                                    </div>
+                                    <div>
+                                        <strong>{topic.name}</strong> 
+                                        <span className="arrow">→</span> 
+                                        Consumers: {topic.consumers.join(', ')}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {selectedTopic && topicMeta && (
+                        <div className="details-panel">
+                            <h3>Topic Details: {topicMeta.name}</h3>
+                            <div><strong>Partitions:</strong> {topicMeta.partitions}</div>
+                            <div><strong>Log Compaction:</strong> {topicMeta.logCompaction ? 'Enabled' : 'Disabled'}</div>
+                            <div><strong>Producers:</strong> {topicMeta.producers.join(', ')}</div>
+                            <div><strong>Consumers:</strong> {topicMeta.consumers.join(', ')}</div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // Render the app
+        ReactDOM.render(<TopologyDemo />, document.getElementById('root'));
+    </script>
+</body>
+</html>

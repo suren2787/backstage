@@ -86,6 +86,9 @@ export const Root = ({ children }: PropsWithChildren<{}>) => (
         <SidebarItem icon={SystemIcon} to="/catalog?filters[kind]=system" text="Systems" />
         <SidebarItem icon={ComponentIcon} to="/catalog?filters[kind]=component" text="Components" />
         <SidebarItem icon={SquadIcon} to="/catalog?filters[kind]=group" text="Squads" />
+        {/* Kafka Topology navigation */}
+        <SidebarDivider />
+        <SidebarItem icon={ExtensionIcon} to="/kafka-topology" text="Kafka Topology" />
         <SidebarScrollWrapper>
           {/* Items in this group will be scrollable if they run out of space */}
         </SidebarScrollWrapper>

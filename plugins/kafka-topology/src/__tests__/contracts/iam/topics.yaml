@@ -1,0 +1,10 @@
+- name: user-authenticated
+  producers:
+    - IAMService
+  consumers:
+    - NotificationService
+- name: user-role-changed
+  producers:
+    - IAMService
+  consumers:
+    - AuditService

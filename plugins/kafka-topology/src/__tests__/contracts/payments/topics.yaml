@@ -1,0 +1,11 @@
+- name: payment-initiated
+  producers:
+    - PaymentService
+  consumers:
+    - FraudDetectionService
+    - LedgerService
+- name: payment-completed
+  producers:
+    - LedgerService
+  consumers:
+    - NotificationService

@@ -14,14 +14,28 @@ export const StaticDataRefresh: React.FC = () => {
       const backendUrl = window.location.hostname === 'localhost' 
         ? 'http://localhost:7007'
         : '';
-      const res = await fetch(`${backendUrl}/api/static-data/refresh`, { 
+      
+      // Refresh static data (domains, squads, applications)
+      const staticDataRes = await fetch(`${backendUrl}/api/static-data/refresh`, { 
         method: 'POST',
         credentials: 'include',
       });
-      if (!res.ok) throw new Error(`Refresh failed: ${res.status} ${res.statusText}`);
-      const data = await res.json();
+      if (!staticDataRes.ok) throw new Error(`Static data refresh failed: ${staticDataRes.status} ${staticDataRes.statusText}`);
+      const staticDataResult = await staticDataRes.json();
+      
+      // Refresh Kafka topology (contracts)
+      const kafkaTopologyRes = await fetch(`${backendUrl}/api/kafka-topology/refresh`, { 
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!kafkaTopologyRes.ok) throw new Error(`Kafka topology refresh failed: ${kafkaTopologyRes.status} ${kafkaTopologyRes.statusText}`);
+      const kafkaTopologyResult = await kafkaTopologyRes.json();
+      
       setLastSync(new Date().toLocaleString());
-      console.log('Refresh successful:', data);
+      console.log('Refresh successful:', { 
+        staticData: staticDataResult, 
+        kafkaTopology: kafkaTopologyResult 
+      });
     } catch (e: any) {
       setError(e.message);
       console.error('Refresh error:', e);
@@ -33,7 +47,7 @@ export const StaticDataRefresh: React.FC = () => {
   return (
     <Box mb={2}>
       <Button variant="contained" color="primary" onClick={handleRefresh} disabled={loading}>
-        {loading ? 'Refreshing...' : 'Refresh Static Data'}
+        {loading ? 'Refreshing...' : 'Refresh All Data'}
       </Button>
       <Box mt={1}>
         <Typography variant="body2">

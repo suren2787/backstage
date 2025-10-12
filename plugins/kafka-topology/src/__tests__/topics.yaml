@@ -1,0 +1,17 @@
+- name: topic1
+  partitions: 3
+  logCompaction: true
+  producers:
+    - serviceA
+    - serviceB
+  consumers:
+    - serviceC
+    - serviceD
+- name: topic2
+  partitions: 2
+  logCompaction: false
+  producers:
+    - serviceE
+  consumers:
+    - serviceA
+    - serviceF

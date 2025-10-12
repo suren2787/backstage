@@ -1,0 +1,1 @@
+export { KafkaTopologyPage } from './plugin';

@@ -47,6 +47,12 @@ integrations:
     # - host: ghe.example.net
     #   apiBaseUrl: https://ghe.example.net/api/v3
     #   token: ${GHE_TOKEN}
+  kafkaTopology:
+    githubOwner: "suren2787"
+    githubRepo: "static-data"
+    githubBranch: "master"
+    githubPath: "contracts"
+    githubToken: ${STATIC_DATA_GITHUB_TOKEN}
 
 proxy:
   '/api/static-data':

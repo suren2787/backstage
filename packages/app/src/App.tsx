@@ -25,6 +25,7 @@ import { apis } from './apis';
 import { entityPage } from './components/catalog/EntityPage';
 import { searchPage } from './components/search/SearchPage';
 import { Root } from './components/Root';
+import { KafkaTopologyPage } from 'plugin-kafka-topology';
 
 import {
   AlertDisplay,
@@ -111,8 +112,9 @@ const routes = (
       {searchPage}
     </Route>
   <Route path="/settings" element={<><UserSettingsPage /><SettingsStaticDataRefresh /></>} />
-    <Route path="/catalog-graph" element={<CatalogGraphPage />} />
-    <Route path="/notifications" element={<NotificationsPage />} />
+  <Route path="/catalog-graph" element={<CatalogGraphPage />} />
+  <Route path="/notifications" element={<NotificationsPage />} />
+  <Route path="/kafka-topology" element={<KafkaTopologyPage />} />
   </FlatRoutes>
 );
 

@@ -65,7 +65,12 @@ backend.add(import('@backstage/plugin-notifications-backend'));
 backend.add(import('@backstage/plugin-signals-backend'));
 
 // static-data plugin and module
+
+// static-data plugin and module
 backend.add(import('../../../plugins/static-data-backend/src/index')); // HTTP routes plugin
 backend.add(import('../../../plugins/static-data-backend/src/module')); // Catalog module - expects default export
+
+// kafka-topology-backend plugin
+backend.add(import('../../../plugins/kafka-topology-backend/src/index'));
 
 backend.start();
