@@ -10,11 +10,21 @@ export const StaticDataRefresh: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/static-data/refresh', { method: 'POST' });
-      if (!res.ok) throw new Error('Refresh failed');
+      // Call backend directly since proxy isn't working in dev mode
+      const backendUrl = window.location.hostname === 'localhost' 
+        ? 'http://localhost:7007'
+        : '';
+      const res = await fetch(`${backendUrl}/api/static-data/refresh`, { 
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error(`Refresh failed: ${res.status} ${res.statusText}`);
+      const data = await res.json();
       setLastSync(new Date().toLocaleString());
+      console.log('Refresh successful:', data);
     } catch (e: any) {
       setError(e.message);
+      console.error('Refresh error:', e);
     } finally {
       setLoading(false);
     }

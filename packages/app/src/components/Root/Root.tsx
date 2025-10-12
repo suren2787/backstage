@@ -4,6 +4,10 @@ import HomeIcon from '@material-ui/icons/Home';
 import ExtensionIcon from '@material-ui/icons/Extension';
 import LibraryBooks from '@material-ui/icons/LibraryBooks';
 import CreateComponentIcon from '@material-ui/icons/AddCircleOutline';
+import DomainIcon from '@material-ui/icons/Language';
+import SystemIcon from '@material-ui/icons/SettingsEthernet';
+import ComponentIcon from '@material-ui/icons/Widgets';
+import SquadIcon from '@material-ui/icons/GroupWork';
 import LogoFull from './LogoFull';
 import LogoIcon from './LogoIcon';
 import {
@@ -76,8 +80,12 @@ export const Root = ({ children }: PropsWithChildren<{}>) => (
         <SidebarItem icon={ExtensionIcon} to="api-docs" text="APIs" />
         <SidebarItem icon={LibraryBooks} to="docs" text="Docs" />
         <SidebarItem icon={CreateComponentIcon} to="create" text="Create..." />
-        {/* End global nav */}
+        {/* BIAN navigation */}
         <SidebarDivider />
+        <SidebarItem icon={DomainIcon} to="/catalog?filters[kind]=domain" text="Domains" />
+        <SidebarItem icon={SystemIcon} to="/catalog?filters[kind]=system" text="Systems" />
+        <SidebarItem icon={ComponentIcon} to="/catalog?filters[kind]=component" text="Components" />
+        <SidebarItem icon={SquadIcon} to="/catalog?filters[kind]=group" text="Squads" />
         <SidebarScrollWrapper>
           {/* Items in this group will be scrollable if they run out of space */}
         </SidebarScrollWrapper>

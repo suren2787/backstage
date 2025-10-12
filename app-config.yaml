@@ -49,6 +49,9 @@ integrations:
     #   token: ${GHE_TOKEN}
 
 proxy:
+  '/api/static-data':
+    target: 'http://localhost:7007'
+    changeOrigin: true
   ### Example for how to add a proxy endpoint for the frontend.
   ### A typical reason to do this is to handle HTTPS and CORS for internal services.
   # endpoints:
@@ -85,33 +88,10 @@ catalog:
     entityFilename: catalog-info.yaml
     pullRequestBranchName: backstage-integration
   rules:
-    - allow: [Component, System, API, Resource, Location]
+    - allow: [Component, System, API, Resource, Location, Domain, Group]
   locations:
-    # Local example data, file locations are relative to the backend process, typically `packages/backend`
-    - type: file
-      target: ../../examples/entities.yaml
-
-    # Local example template
-    - type: file
-      target: ../../examples/template/template.yaml
-      rules:
-        - allow: [Template]
-
-    # Local example organizational data
-    - type: file
-      target: ../../examples/org.yaml
-      rules:
-        - allow: [User, Group]
-
-    ## Uncomment these lines to add more example data
-    # - type: url
-    #   target: https://github.com/backstage/backstage/blob/master/packages/catalog-model/examples/all.yaml
-
-    ## Uncomment these lines to add an example org
-    # - type: url
-    #   target: https://github.com/backstage/backstage/blob/master/packages/catalog-model/examples/acme-corp.yaml
-    #   rules:
-    #     - allow: [User, Group]
+    # All entities are provided by the StaticDataEntityProvider
+    # No local file locations needed - data comes from GitHub static-data repo
 
 kubernetes:
   # see https://backstage.io/docs/features/kubernetes/configuration for kubernetes configuration options
@@ -120,3 +100,17 @@ kubernetes:
 permission:
   # setting this to `false` will disable permissions
   enabled: true
+
+# Static Data Provider Configuration
+staticData:
+  github:
+    repo: ${STATIC_DATA_REPO}
+    branch: ${STATIC_DATA_BRANCH}
+    token: ${STATIC_DATA_GITHUB_TOKEN}
+  files:
+    squads: 'data/squads.json'
+    domains: 'data/domains.json'
+    applications: 'data/applications.json'
+  refresh:
+    enabled: true
+    # schedule: '0 */6 * * *'  # Every 6 hours (for future auto-refresh)

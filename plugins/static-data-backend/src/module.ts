@@ -19,21 +19,35 @@ export default createBackendModule({
       deps: {
         catalog: catalogProcessingExtensionPoint,
         logger: coreServices.logger,
+        config: coreServices.rootConfig,
       },
-      async init({ catalog, logger }) {
+      async init({ catalog, logger, config }) {
+        // Read configuration from app-config.yaml
+        const staticDataConfig = config.getOptionalConfig('staticData');
+        const githubConfig = staticDataConfig?.getOptionalConfig('github');
+        
+        const repo = githubConfig?.getOptionalString('repo') || process.env.STATIC_DATA_REPO || 'suren2787/static-data';
+        const token = githubConfig?.getOptionalString('token') || process.env.STATIC_DATA_GITHUB_TOKEN;
+        const branch = githubConfig?.getOptionalString('branch') || process.env.STATIC_DATA_BRANCH || 'master';
+
+        if (!token) {
+          logger.warn('StaticDataEntityProvider: GitHub token not configured. Provider will not be registered.');
+          return;
+        }
+
         // Create entity provider
         providerInstance = new StaticDataEntityProvider(
           logger as any,
           {
-            repo: process.env.STATIC_DATA_REPO || 'suren2787/static-data',
-            token: process.env.STATIC_DATA_GITHUB_TOKEN,
-            branch: process.env.STATIC_DATA_BRANCH || 'master',
+            repo,
+            token,
+            branch,
           }
         );
 
         // Register with catalog
         catalog.addEntityProvider(providerInstance);
-        logger.info('StaticDataEntityProvider registered with catalog');
+        logger.info(`StaticDataEntityProvider registered with catalog (repo: ${repo}, branch: ${branch})`);
       },
     });
   },

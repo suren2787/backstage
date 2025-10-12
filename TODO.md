@@ -5,10 +5,10 @@
  
 # Consolidated TODOs (as of 2025-10-11)
 
-- [ ] Fix the static-data refresh button UX so it’s visible and working in the UI
-- [ ] Add manual refresh button to Backstage UI (trigger /api/static-data/refresh)
-- [ ] Display last sync time in Backstage UI (update after each refresh)
-- [ ] Add sidebar navigation entries for BIAN entities (Domain, System, Component, etc.)
+- [x] Fix the static-data refresh button UX so it’s visible and working in the UI ✅
+- [x] Add manual refresh button to Backstage UI (trigger /api/static-data/refresh) ✅
+- [x] Display last sync time in Backstage UI (update after each refresh) ✅
+- [x] Add sidebar navigation entries for BIAN entities (Domain, System, Component, etc.) ✅
 - [ ] Integrate Kafka topology into Backstage
 - [ ] Create new BIAN entities (landscape diagrams, references, etc.)
 
@@ -94,25 +94,28 @@ plugins/static-data-backend/
 
 
 ### Next Steps (Phase 2)
-- [ ] **Configuration via app-config.yaml**:
-  ```yaml
-  staticData:
-    github:
-      repo: ${STATIC_DATA_REPO}
-      branch: ${STATIC_DATA_BRANCH}
-      token: ${STATIC_DATA_GITHUB_TOKEN}
-    files:
-      squads: 'data/squads.json'
-      boundedContexts: 'data/bounded-contexts.json'
-      applications: 'data/applications.json'
-    refresh:
-      enabled: true
-      schedule: '0 */6 * * *'  # Every 6 hours
-  ```
+- [x] **Configuration via app-config.yaml** ✅
+  - All static-data configuration centralized in `app-config.yaml`
+  - Backend module reads from config with environment variable fallback
+  - Configuration structure:
+    ```yaml
+    staticData:
+      github:
+        repo: ${STATIC_DATA_REPO}
+        branch: ${STATIC_DATA_BRANCH}
+        token: ${STATIC_DATA_GITHUB_TOKEN}
+      files:
+        squads: 'data/squads.json'
+        domains: 'data/domains.json'
+        applications: 'data/applications.json'
+      refresh:
+        enabled: true
+        # schedule: '0 */6 * * *'  # Every 6 hours (for future auto-refresh)
+    ```
 
 - [ ] **Scheduled Auto-Refresh**:
-  - [ ] Implement cron scheduling with node-cron
-  - [ ] Make schedule configurable via app-config
+  - [ ] Implement cron scheduling with node-cron (auto-refresh static-data)
+  - [ ] Make schedule configurable via app-config.yaml
   - [ ] Add option to disable auto-refresh
   - [ ] Log scheduled refresh results
 
