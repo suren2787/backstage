@@ -117,6 +117,7 @@ staticData:
     squads: 'data/squads.json'
     domains: 'data/domains.json'
     applications: 'data/applications.json'
+    apis: 'data/apis.json'
   refresh:
     enabled: true
     # schedule: '0 */6 * * *'  # Every 6 hours (for future auto-refresh)

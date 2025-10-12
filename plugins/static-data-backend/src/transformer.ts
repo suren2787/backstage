@@ -1,3 +1,41 @@
+// Map apis.json structure to Backstage API entity
+// id -> metadata.name
+// name -> metadata.title
+// description -> metadata.description
+// type -> spec.type
+// systemId -> spec.system
+// ownerSquadId -> spec.owner
+// lifecycle -> spec.lifecycle
+// definition -> spec.definition
+// tags -> metadata.tags
+// visibility -> spec.visibility
+// version -> spec.version
+export function apiJsonToApiEntity(api: any): Entity {
+  const annotations: Record<string, string> = {
+    'backstage.io/managed-by-location': 'static-data:import',
+    'backstage.io/managed-by-origin-location': 'static-data:import',
+  };
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'API',
+    metadata: {
+      name: api.id,
+      title: api.name,
+      description: api.description,
+      tags: api.tags || [],
+      annotations,
+    },
+    spec: {
+      type: api.type,
+      lifecycle: api.lifecycle || 'production',
+      owner: api.ownerSquadId || 'unknown',
+      system: api.systemId || undefined,
+      definition: api.definition,
+      visibility: api.visibility || 'public',
+      version: api.version || undefined,
+    },
+  } as Entity;
+}
 // Map applications.json structure to Backstage Component entity
 // Mapping:
 // id -> metadata.name

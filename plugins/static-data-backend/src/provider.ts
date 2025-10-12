@@ -4,9 +4,9 @@ import path from 'path';
 import { Logger } from 'winston';
 import { CatalogClient } from '@backstage/catalog-client';
 import { Entity } from '@backstage/catalog-model';
-import { fetchFileFromGitHub, GitHubConfig } from './fetcher';
+import { fetchFileFromGitHub, GitHubConfig, fetchAllOpenApiDefinitionsFromContracts } from './fetcher';
 import { applicationSchema, squadSchema, boundedContextSchema } from './schemas';
-import { applicationToComponent, squadToGroup, boundedContextToDomain, domainToDomain } from './transformer';
+import { applicationToComponent, squadToGroup, boundedContextToDomain, domainToDomain, apiJsonToApiEntity } from './transformer';
 
 export type StaticDataProviderOptions = {
   logger: Logger;
@@ -15,7 +15,7 @@ export type StaticDataProviderOptions = {
   discoveryApi?: { getBaseUrl: (pluginId: string) => Promise<string> };
   writeToCatalog?: boolean;
   writeToFile?: boolean;
-  files?: { applications?: string; squads?: string; boundedContexts?: string; domains?: string };
+  files?: { applications?: string; squads?: string; boundedContexts?: string; domains?: string; apis?: string };
 };
 
 export class StaticDataProvider {
@@ -29,7 +29,9 @@ export class StaticDataProvider {
     let imported = 0;
     const entities: Entity[] = [];
 
+
     try {
+      // Load core data
       const appsRaw = await fetchFileFromGitHub(github, this.opts.files?.applications ?? 'data/applications.json');
       const squadsRaw = await fetchFileFromGitHub(github, this.opts.files?.squads ?? 'data/squads.json');
       const bcsRaw = await fetchFileFromGitHub(github, this.opts.files?.boundedContexts ?? 'data/bounded-contexts.json');
@@ -40,10 +42,36 @@ export class StaticDataProvider {
       const bcs = JSON.parse(bcsRaw);
       const domains = JSON.parse(domainsRaw);
 
+      // Map bounded context name to ownerSquadId for API entity mapping
+      const bcOwnerMap: Record<string, string> = {};
+      for (const bc of bcs) {
+        if (bc.id && bc.ownerSquadId) bcOwnerMap[bc.id] = bc.ownerSquadId;
+        if (bc.name && bc.ownerSquadId) bcOwnerMap[bc.name] = bc.ownerSquadId;
+      }
+
+      // Ingest APIs from contracts openapi folders
+      const openapiDefs = await fetchAllOpenApiDefinitionsFromContracts(github, 'contracts');
+      for (const def of openapiDefs) {
+        const apiEntity = apiJsonToApiEntity({
+          id: `${def.boundedContext}-${def.api}-${def.version}`,
+          name: `${def.api} (${def.version})`,
+          description: `API ${def.api} for bounded context ${def.boundedContext}, version ${def.version}`,
+          type: 'openapi',
+          systemId: def.boundedContext,
+          ownerSquadId: bcOwnerMap[def.boundedContext] || 'unknown',
+          lifecycle: 'production',
+          definition: def.rawYaml,
+          tags: [],
+          visibility: 'public',
+          version: def.version,
+        });
+        entities.push(apiEntity);
+      }
+
+      // Validate and ingest other entities
       const validateApp = this.ajv.compile(applicationSchema as any);
       const validateSquad = this.ajv.compile(squadSchema as any);
       const validateBc = this.ajv.compile(boundedContextSchema as any);
-      // No schema for domains, assume valid
 
       for (const a of apps) {
         if (!validateApp(a)) {

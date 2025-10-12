@@ -1,3 +1,4 @@
+export { apiSchema } from './apis-schema';
 export const applicationSchema = {
   type: 'object',
   properties: {

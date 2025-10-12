@@ -133,44 +133,61 @@ export const TopologyDiagram: React.FC<TopologyDiagramProps> = ({ graph, topics,
 		}
 	}
 
-	return (
-		<ReactFlowProvider>
-			<div style={{ display: 'flex', width: '100%', height: '600px' }}>
-				<div style={{ flex: 1, position: 'relative' }}>
-					<ReactFlow
-						nodes={nodes}
-						edges={edges}
-						nodeTypes={nodeTypes}
-						fitView
-						onNodeClick={handleNodeClick}
-					>
-						<Background />
-						<Controls />
-					</ReactFlow>
-					{/* Node type legend */}
-					<div style={{ position: 'absolute', top: 10, right: 10, background: '#fff', border: '1px solid #eee', padding: 8, borderRadius: 4, zIndex: 10 }}>
-						<strong>Legend:</strong>
-						<ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-							<li style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}>
-								<span style={{ width: 24, height: 24, background: '#fffbe6', border: '2px solid #fbc02d', borderRadius: 8, display: 'inline-block', marginRight: 8 }}></span>
-								<span><strong>Topic</strong></span>
-							</li>
-							<li style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}>
-								<span style={{ width: 24, height: 24, background: '#e3f2fd', border: '2px solid #1976d2', borderRadius: 20, display: 'inline-block', marginRight: 8 }}></span>
-								<span>Service</span>
-							</li>
-							<li style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}>
-								<span style={{ width: 32, height: 4, background: '#e74c3c', display: 'inline-block', marginRight: 8 }}></span>
-								<span>Produces</span>
-							</li>
-							<li style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}>
-								<span style={{ width: 32, height: 4, background: '#1976d2', display: 'inline-block', marginRight: 8 }}></span>
-								<span>Consumes</span>
-							</li>
-						</ul>
+		return (
+			<ReactFlowProvider>
+				<div style={{ display: 'flex', width: '100%', height: '600px' }}>
+					<div style={{ flex: 1, position: 'relative' }}>
+						<ReactFlow
+							nodes={nodes}
+							edges={edges}
+							nodeTypes={nodeTypes}
+							fitView
+							onNodeClick={handleNodeClick}
+						>
+							<Background />
+							<Controls />
+						</ReactFlow>
+						{/* Node type legend - moved to bottom left, improved contrast and font */}
+									<div style={{ 
+										position: 'absolute', 
+										left: 16, 
+										bottom: 16, 
+										background: 'rgba(30, 41, 59, 0.97)', // slate-800 with opacity
+										color: '#fff', 
+										border: '1px solid #334155', 
+										padding: '16px 20px', 
+										borderRadius: 8, 
+										zIndex: 20, 
+										fontSize: '15px',
+										fontWeight: 500,
+										boxShadow: '0 4px 16px rgba(0,0,0,0.18)'
+									}}>
+										<div style={{ fontWeight: 700, fontSize: '16px', marginBottom: 8, letterSpacing: 0.5 }}>Legend</div>
+										<ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+											<li style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+												{/* Topic: yellow rounded rectangle */}
+												<span style={{ width: 32, height: 24, background: '#fff3cd', border: '2px solid #856404', borderRadius: 8, display: 'inline-block', marginRight: 10 }}></span>
+												<span style={{ color: '#fbc02d', fontWeight: 700 }}>Topic</span>
+											</li>
+											<li style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+												{/* Service: blue rounded rectangle */}
+												<span style={{ width: 32, height: 24, background: '#d1ecf1', border: '2px solid #0c5460', borderRadius: 8, display: 'inline-block', marginRight: 10 }}></span>
+												<span style={{ color: '#60a5fa', fontWeight: 700 }}>Service</span>
+											</li>
+											<li style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+												{/* Produces: solid red line */}
+												<span style={{ width: 32, height: 4, background: '#e74c3c', display: 'inline-block', marginRight: 10, borderRadius: 2 }}></span>
+												<span style={{ color: '#f87171', fontWeight: 700 }}>Produces</span>
+											</li>
+											<li style={{ display: 'flex', alignItems: 'center', marginBottom: 0 }}>
+												{/* Consumes: dotted blue line */}
+												<span style={{ width: 32, height: 4, background: 'none', borderBottom: '3px dotted #1976d2', display: 'inline-block', marginRight: 10, borderRadius: 2 }}></span>
+												<span style={{ color: '#60a5fa', fontWeight: 700 }}>Consumes</span>
+											</li>
+										</ul>
+									</div>
 					</div>
 				</div>
-			</div>
-		</ReactFlowProvider>
+			</ReactFlowProvider>
 	);
 };

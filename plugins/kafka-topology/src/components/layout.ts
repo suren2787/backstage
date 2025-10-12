@@ -73,6 +73,7 @@ export function getDagreLayoutNodes(graph: KafkaTopologyGraph): Node[] {
         height: nodeHeight,
         background: isTopic ? '#fff3cd' : '#d1ecf1',
         border: isTopic ? '2px solid #856404' : '2px solid #0c5460',
+        color: isTopic ? '#222' : '#0c5460', // Use dark text for yellow topic nodes
         borderRadius: 8,
         fontSize: '14px',
         fontWeight: isTopic ? 'bold' : 'normal',
