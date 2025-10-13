@@ -1,3 +1,52 @@
+import * as gradleParser from 'gradle-to-js/lib/parser';
+
+// Fetch and parse build.gradle from a remote GitHub repo
+export async function fetchAndParseBuildGradle(github: GitHubConfig, repo: string, branch: string = 'main', path: string = 'build.gradle'): Promise<any> {
+  const gradleGithubConfig = { ...github, repo, branch };
+  const gradleContent = await fetchFileFromGitHub(gradleGithubConfig, path);
+  // Use gradle-to-js to parse the build.gradle content
+  try {
+    const parsed = await gradleParser.parseText(gradleContent);
+    return parsed;
+  } catch (e) {
+    throw new Error(`Failed to parse build.gradle for ${repo}: ${e}`);
+  }
+}
+
+// Extract openapi producer/consumer API references from parsed build.gradle
+export function extractOpenApiRelations(parsedGradle: any): { produces: string[]; consumes: string[] } {
+  const produces: string[] = [];
+  const consumes: string[] = [];
+  if (!parsedGradle) return { produces, consumes };
+  // Traverse the parsed object to find openapi.producer and openapi.consumer
+  if (parsedGradle.openapi) {
+    if (parsedGradle.openapi.producer) {
+      for (const key in parsedGradle.openapi.producer) {
+        const val = parsedGradle.openapi.producer[key];
+        if (typeof val === 'object') {
+          Object.keys(val).forEach(api => {
+            produces.push(api);
+          });
+        } else if (typeof val === 'string') {
+          produces.push(val);
+        }
+      }
+    }
+    if (parsedGradle.openapi.consumer) {
+      for (const key in parsedGradle.openapi.consumer) {
+        const val = parsedGradle.openapi.consumer[key];
+        if (typeof val === 'object') {
+          Object.keys(val).forEach(api => {
+            consumes.push(api);
+          });
+        } else if (typeof val === 'string') {
+          consumes.push(val);
+        }
+      }
+    }
+  }
+  return { produces, consumes };
+}
 // Recursively list all OpenAPI files in contracts/{bounded-context}/openapi/{api}/{version}.yaml
 export async function fetchAllOpenApiDefinitionsFromContracts(github: GitHubConfig, contractsPath = 'contracts'): Promise<Array<{
   boundedContext: string;

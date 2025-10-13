@@ -4,7 +4,7 @@ import path from 'path';
 import { Logger } from 'winston';
 import { CatalogClient } from '@backstage/catalog-client';
 import { Entity } from '@backstage/catalog-model';
-import { fetchFileFromGitHub, GitHubConfig, fetchAllOpenApiDefinitionsFromContracts } from './fetcher';
+import { fetchFileFromGitHub, GitHubConfig, fetchAllOpenApiDefinitionsFromContracts, fetchAndParseBuildGradle, extractOpenApiRelations } from './fetcher';
 import { applicationSchema, squadSchema, boundedContextSchema } from './schemas';
 import { applicationToComponent, squadToGroup, boundedContextToDomain, domainToDomain, apiJsonToApiEntity } from './transformer';
 
@@ -73,12 +73,74 @@ export class StaticDataProvider {
       const validateSquad = this.ajv.compile(squadSchema as any);
       const validateBc = this.ajv.compile(boundedContextSchema as any);
 
+      // Map of API entity names for quick lookup
+      const apiEntityNames = new Set(entities.filter(e => e.kind === 'API').map(e => e.metadata.name));
+      
+      logger.info(`StaticDataProvider: Found ${apiEntityNames.size} API entities: ${Array.from(apiEntityNames).join(', ')}`);
+
       for (const a of apps) {
         if (!validateApp(a)) {
           errors.push(`application ${JSON.stringify(a)} failed validation`);
           continue;
         }
-        entities.push(applicationToComponent(a));
+
+        // Attempt to fetch and parse build.gradle for produces/consumesApi
+        // Extract repo from url field if repo/githubRepo not present
+        let producesApi: string[] = [];
+        let consumesApi: string[] = [];
+        const appAny = a as any;
+        logger.info(`StaticDataProvider: Processing app ${appAny.id} - url: ${appAny.url}, repo: ${appAny.repo}, githubRepo: ${appAny.githubRepo}`);
+        let repo = appAny.repo || appAny.githubRepo;
+        
+        // If no repo field, try to extract from url field (e.g., https://github.com/owner/repo)
+        if (!repo && appAny.url) {
+          const urlMatch = appAny.url.match(/github\.com[/:]([^/]+\/[^/]+?)(?:\.git)?$/);
+          if (urlMatch) {
+            repo = urlMatch[1];
+            logger.info(`StaticDataProvider: Extracted repo ${repo} from url for ${appAny.id}`);
+          }
+        }
+        
+        if (repo) {
+          try {
+            const gradle = await fetchAndParseBuildGradle(github, repo, github.branch ?? 'main', 'build.gradle');
+            const rels = extractOpenApiRelations(gradle);
+            logger.info(`StaticDataProvider: build.gradle for ${appAny.id} (${repo}) - raw produces: ${JSON.stringify(rels.produces)}, raw consumes: ${JSON.stringify(rels.consumes)}`);
+            // Only link to API entities that exist in this catalog
+            producesApi = (rels.produces || []).filter(api => apiEntityNames.has(api));
+            consumesApi = (rels.consumes || []).filter(api => apiEntityNames.has(api));
+            logger.info(`StaticDataProvider: ${appAny.id} - filtered produces: ${JSON.stringify(producesApi)}, filtered consumes: ${JSON.stringify(consumesApi)}`);
+          } catch (e: any) {
+            logger.warn(`Failed to fetch/parse build.gradle for ${repo}: ${e.message || e}`);
+            errors.push(`Failed to fetch/parse build.gradle for ${repo}: ${e.message || e}`);
+          }
+        }
+
+        // Add providesApis and consumesApis to the app object for transformer
+        const aObj = a as any;
+
+        // Only set providesApis/consumesApis if non-empty, and use correct entity ref format
+        const providesApis = producesApi
+          .map(api => `API:default/${api}`)
+          .filter(Boolean);
+        const consumesApis = consumesApi
+          .map(api => `API:default/${api}`)
+          .filter(Boolean);
+
+        if (providesApis.length > 0 || consumesApis.length > 0) {
+          logger.info(`StaticDataProvider: ${aObj.id} - providesApis: ${JSON.stringify(providesApis)}, consumesApis: ${JSON.stringify(consumesApis)}`);
+        }
+
+        const appWithApis = {
+          ...aObj,
+          ...(providesApis.length > 0 ? { providesApis } : {}),
+          ...(consumesApis.length > 0 ? { consumesApis } : {}),
+        };
+
+        // Pass to transformer
+        const component = applicationToComponent(appWithApis);
+        logger.info(`StaticDataProvider: Component ${component.metadata.name} spec: ${JSON.stringify(component.spec)}`);
+        entities.push(component);
       }
 
       for (const s of squads) {
@@ -142,7 +204,9 @@ export class StaticDataProvider {
 
       imported = entities.length;
     } catch (e: any) {
-      errors.push(e.message ?? String(e));
+      const errorMsg = e.message ?? String(e);
+      errors.push(errorMsg);
+      logger.error(`StaticDataProvider refresh failed: ${errorMsg}`, e);
     }
 
     return { imported, errors, entities };

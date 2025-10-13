@@ -169,21 +169,21 @@ export const TopologyDiagram: React.FC<TopologyDiagramProps> = ({ graph, topics,
 												<span style={{ width: 32, height: 24, background: '#fff3cd', border: '2px solid #856404', borderRadius: 8, display: 'inline-block', marginRight: 10 }}></span>
 												<span style={{ color: '#fbc02d', fontWeight: 700 }}>Topic</span>
 											</li>
-											<li style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-												{/* Service: blue rounded rectangle */}
-												<span style={{ width: 32, height: 24, background: '#d1ecf1', border: '2px solid #0c5460', borderRadius: 8, display: 'inline-block', marginRight: 10 }}></span>
-												<span style={{ color: '#60a5fa', fontWeight: 700 }}>Service</span>
-											</li>
-											<li style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-												{/* Produces: solid red line */}
-												<span style={{ width: 32, height: 4, background: '#e74c3c', display: 'inline-block', marginRight: 10, borderRadius: 2 }}></span>
-												<span style={{ color: '#f87171', fontWeight: 700 }}>Produces</span>
-											</li>
-											<li style={{ display: 'flex', alignItems: 'center', marginBottom: 0 }}>
-												{/* Consumes: dotted blue line */}
-												<span style={{ width: 32, height: 4, background: 'none', borderBottom: '3px dotted #1976d2', display: 'inline-block', marginRight: 10, borderRadius: 2 }}></span>
-												<span style={{ color: '#60a5fa', fontWeight: 700 }}>Consumes</span>
-											</li>
+															<li style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+																{/* Service: blue rounded rectangle */}
+																<span style={{ width: 32, height: 24, background: '#d1ecf1', border: '2px solid #0c5460', borderRadius: 8, display: 'inline-block', marginRight: 10 }}></span>
+																<span style={{ color: '#60a5fa', fontWeight: 700 }}>Service</span>
+															</li>
+															<li style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+																{/* Produces: solid red line */}
+																<span style={{ width: 32, height: 4, background: '#e74c3c', display: 'inline-block', marginRight: 10, borderRadius: 2 }}></span>
+																<span style={{ color: '#f87171', fontWeight: 700 }}>Produces</span>
+															</li>
+															<li style={{ display: 'flex', alignItems: 'center', marginBottom: 0 }}>
+																{/* Consumes: dotted blue line */}
+																<span style={{ width: 32, height: 4, background: 'none', borderBottom: '3px dotted #1976d2', display: 'inline-block', marginRight: 10, borderRadius: 2 }}></span>
+																<span style={{ color: '#60a5fa', fontWeight: 700 }}>Consumes</span>
+															</li>
 										</ul>
 									</div>
 					</div>

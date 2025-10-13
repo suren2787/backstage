@@ -115,6 +115,19 @@ export function applicationToComponent(app: any): Entity {
     const url = app.url.startsWith('url:') ? app.url : `url:${app.url}`;
     annotations['backstage.io/source-location'] = url;
   }
+  const spec: any = {
+    type: app.applicationType || 'service',
+    lifecycle: app.status || 'production',
+    owner: Array.isArray(app.supportedBySquadsIds) && app.supportedBySquadsIds.length > 0 ? app.supportedBySquadsIds[0] : 'unknown',
+    system: app.inContextOfBoundedContextId || undefined,
+    tags: app.applicationType ? [app.applicationType] : [],
+  };
+  if (app.providesApis && Array.isArray(app.providesApis) && app.providesApis.length > 0) {
+    spec.providesApis = app.providesApis;
+  }
+  if (app.consumesApis && Array.isArray(app.consumesApis) && app.consumesApis.length > 0) {
+    spec.consumesApis = app.consumesApis;
+  }
   return {
     apiVersion: 'backstage.io/v1alpha1',
     kind: 'Component',
@@ -124,13 +137,7 @@ export function applicationToComponent(app: any): Entity {
       description: app.description,
       annotations,
     },
-    spec: {
-      type: app.applicationType || 'service',
-      lifecycle: app.status || 'production',
-      owner: Array.isArray(app.supportedBySquadsIds) && app.supportedBySquadsIds.length > 0 ? app.supportedBySquadsIds[0] : 'unknown',
-      system: app.inContextOfBoundedContextId || undefined,
-      tags: app.applicationType ? [app.applicationType] : [],
-    },
+    spec,
   } as Entity;
 }
 
