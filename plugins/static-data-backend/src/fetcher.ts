@@ -1,50 +1,99 @@
 import * as gradleParser from 'gradle-to-js/lib/parser';
 
 // Fetch and parse build.gradle from a remote GitHub repo
-export async function fetchAndParseBuildGradle(github: GitHubConfig, repo: string, branch: string = 'main', path: string = 'build.gradle'): Promise<any> {
-  const gradleGithubConfig = { ...github, repo, branch };
-  const gradleContent = await fetchFileFromGitHub(gradleGithubConfig, path);
-  // Use gradle-to-js to parse the build.gradle content
-  try {
-    const parsed = await gradleParser.parseText(gradleContent);
-    return parsed;
-  } catch (e) {
-    throw new Error(`Failed to parse build.gradle for ${repo}: ${e}`);
+// Will try the specified branch first, then fallback to 'main', then 'master'
+// Returns both the parsed object and the raw content for regex-based extraction
+export async function fetchAndParseBuildGradle(github: GitHubConfig, repo: string, branch: string = 'main', path: string = 'build.gradle'): Promise<{ parsed: any; rawContent: string }> {
+  const branchesToTry = [branch, 'main', 'master'].filter((b, i, arr) => arr.indexOf(b) === i); // dedupe
+  
+  let lastError: any;
+  for (const tryBranch of branchesToTry) {
+    try {
+      const gradleGithubConfig = { ...github, repo, branch: tryBranch };
+      const gradleContent = await fetchFileFromGitHub(gradleGithubConfig, path);
+      // Use gradle-to-js to parse the build.gradle content
+      try {
+        const parsed = await gradleParser.parseText(gradleContent);
+        return { parsed, rawContent: gradleContent };
+      } catch (e) {
+        throw new Error(`Failed to parse build.gradle for ${repo}: ${e}`);
+      }
+    } catch (e: any) {
+      lastError = e;
+      // Continue to next branch
+      continue;
+    }
   }
+  
+  // If all branches failed, throw the last error
+  throw lastError;
 }
 
-// Extract openapi producer/consumer API references from parsed build.gradle
-export function extractOpenApiRelations(parsedGradle: any): { produces: string[]; consumes: string[] } {
+// Extract openapi producer/consumer API references from build.gradle raw content
+// Handles format like: javaspring("system:api:version") or java("system:api:version")
+// Converts "system:api:version" to "system-api-vX" format for Backstage entity names
+export function extractOpenApiRelations(gradleResult: { parsed: any; rawContent: string }): { produces: string[]; consumes: string[] } {
   const produces: string[] = [];
   const consumes: string[] = [];
-  if (!parsedGradle) return { produces, consumes };
-  // Traverse the parsed object to find openapi.producer and openapi.consumer
-  if (parsedGradle.openapi) {
-    if (parsedGradle.openapi.producer) {
-      for (const key in parsedGradle.openapi.producer) {
-        const val = parsedGradle.openapi.producer[key];
-        if (typeof val === 'object') {
-          Object.keys(val).forEach(api => {
-            produces.push(api);
-          });
-        } else if (typeof val === 'string') {
-          produces.push(val);
-        }
-      }
-    }
-    if (parsedGradle.openapi.consumer) {
-      for (const key in parsedGradle.openapi.consumer) {
-        const val = parsedGradle.openapi.consumer[key];
-        if (typeof val === 'object') {
-          Object.keys(val).forEach(api => {
-            consumes.push(api);
-          });
-        } else if (typeof val === 'string') {
-          consumes.push(val);
+  
+  if (!gradleResult || !gradleResult.rawContent) return { produces, consumes };
+  
+  const rawContent = gradleResult.rawContent;
+  
+  // Helper function to convert API string to Backstage entity name
+  // Input: "mf-platform:mutual-fund-api:1.0.0" or similar
+  // Output: "mf-platform-mutual-fund-api-v1"
+  const toBackstageApiName = (apiString: string): string | null => {
+    if (!apiString) return null;
+    
+    // Match pattern: "system:api:version"
+    const match = apiString.match(/^([^:]+):([^:]+):([^:]+)$/);
+    if (!match) return null;
+    
+    const [, system, api, version] = match;
+    // Convert to Backstage entity name format: system-api-vX
+    const versionPart = version.startsWith('v') ? version : `v${version.split('.')[0]}`;
+    return `${system}-${api}-${versionPart}`;
+  };
+  
+  // Extract producer APIs using regex
+  // Match patterns like: javaspring("mf-platform:mutual-fund-api:1.0.0") or java("...")
+  // Look within openapi { producer { ... } } blocks
+  const producerRegex = /producer\s*\{[\s\S]*?\}/gi;
+  const producerMatch = rawContent.match(producerRegex);
+  
+  if (producerMatch) {
+    for (const producerBlock of producerMatch) {
+      // Extract all quoted strings that look like "system:api:version"
+      const apiRegex = /["']([^"']+:[^"']+:[^"']+)["']/g;
+      let match;
+      while ((match = apiRegex.exec(producerBlock)) !== null) {
+        const apiName = toBackstageApiName(match[1]);
+        if (apiName && !produces.includes(apiName)) {
+          produces.push(apiName);
         }
       }
     }
   }
+  
+  // Extract consumer APIs using regex
+  const consumerRegex = /consumer\s*\{[\s\S]*?\}/gi;
+  const consumerMatch = rawContent.match(consumerRegex);
+  
+  if (consumerMatch) {
+    for (const consumerBlock of consumerMatch) {
+      // Extract all quoted strings that look like "system:api:version"
+      const apiRegex = /["']([^"']+:[^"']+:[^"']+)["']/g;
+      let match;
+      while ((match = apiRegex.exec(consumerBlock)) !== null) {
+        const apiName = toBackstageApiName(match[1]);
+        if (apiName && !consumes.includes(apiName)) {
+          consumes.push(apiName);
+        }
+      }
+    }
+  }
+  
   return { produces, consumes };
 }
 // Recursively list all OpenAPI files in contracts/{bounded-context}/openapi/{api}/{version}.yaml

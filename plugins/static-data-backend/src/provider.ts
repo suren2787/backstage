@@ -85,27 +85,28 @@ export class StaticDataProvider {
         }
 
         // Attempt to fetch and parse build.gradle for produces/consumesApi
-        // Extract repo from url field if repo/githubRepo not present
+        // Use the new repository URL field (e.g., appAny.repository)
         let producesApi: string[] = [];
         let consumesApi: string[] = [];
         const appAny = a as any;
-        logger.info(`StaticDataProvider: Processing app ${appAny.id} - url: ${appAny.url}, repo: ${appAny.repo}, githubRepo: ${appAny.githubRepo}`);
-        let repo = appAny.repo || appAny.githubRepo;
-        
+        logger.info(`StaticDataProvider: Processing app ${appAny.id} - url: ${appAny.url}, repo: ${appAny.repo}, githubRepo: ${appAny.githubRepo}, repository: ${appAny.repository}`);
+        let repo = appAny.repository || appAny.repo || appAny.githubRepo;
+
         // If no repo field, try to extract from url field (e.g., https://github.com/owner/repo)
         if (!repo && appAny.url) {
-          const urlMatch = appAny.url.match(/github\.com[/:]([^/]+\/[^/]+?)(?:\.git)?$/);
+          // Match full GitHub repo URLs like https://github.com/owner/repo or https://github.com/owner/repo.git
+          const urlMatch = appAny.url.match(/github\.com[/:]([^/]+\/[^/]+?)(?:\.git)?(?:$|[?#])/);
           if (urlMatch) {
             repo = urlMatch[1];
             logger.info(`StaticDataProvider: Extracted repo ${repo} from url for ${appAny.id}`);
           }
         }
-        
+
         if (repo) {
           try {
             const gradle = await fetchAndParseBuildGradle(github, repo, github.branch ?? 'main', 'build.gradle');
             const rels = extractOpenApiRelations(gradle);
-            logger.info(`StaticDataProvider: build.gradle for ${appAny.id} (${repo}) - raw produces: ${JSON.stringify(rels.produces)}, raw consumes: ${JSON.stringify(rels.consumes)}`);
+            logger.info(`StaticDataProvider: build.gradle for ${appAny.id} (${repo}) - extracted produces: ${JSON.stringify(rels.produces)}, consumes: ${JSON.stringify(rels.consumes)}`);
             // Only link to API entities that exist in this catalog
             producesApi = (rels.produces || []).filter(api => apiEntityNames.has(api));
             consumesApi = (rels.consumes || []).filter(api => apiEntityNames.has(api));
