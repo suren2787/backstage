@@ -334,7 +334,8 @@ export default createBackendModule({
         // Uncomment to automatically populate mock entities
         if (process.env.ARCHITECTURE_USE_MOCK_DATA === 'true') {
           logger.info('ARCHITECTURE_USE_MOCK_DATA enabled - loading mock provider');
-          const { MockArchitectureProvider } = await import('./mockProvider');
+          const mockProviderModule = await import('./mockProvider');
+          const MockArchitectureProvider = mockProviderModule.MockArchitectureProvider;
           const mockProvider = new MockArchitectureProvider(logger);
           catalog.addEntityProvider(mockProvider);
         }
