@@ -170,11 +170,19 @@ export class ArchitectureModule {
 
       // Add component
       const githubUrl = this.extractGitHubUrl(component);
+      const githubRepo = githubUrl ? this.parseGitHubUrl(githubUrl) : undefined;
+      
       context.components.push({
         name: component.metadata.name,
         entityRef: `component:default/${component.metadata.name}`,
         type: component.spec?.type as string,
         githubUrl,
+        // Include structured GitHub info if available
+        ...(githubRepo && {
+          githubOrg: githubRepo.org,
+          githubRepo: githubRepo.repo,
+          ...(githubRepo.path && { githubPath: githubRepo.path }),
+        }),
       });
 
       if (githubUrl && !context.sourceUrl) {
@@ -278,17 +286,66 @@ export class ArchitectureModule {
   /**
    * Extract GitHub URL from component
    */
+  /**
+   * Extract GitHub URL from component annotations
+   * Handles multiple annotation formats:
+   * - github.com/project-slug: "owner/repo"
+   * - backstage.io/source-location: "url:https://github.com/owner/repo" or "github:https://github.com/owner/repo"
+   * - backstage.io/source-location: "https://github.com/owner/repo" (without prefix)
+   */
   private extractGitHubUrl(component: Entity): string | undefined {
-    const repoUrl = component.metadata.annotations?.['github.com/project-slug'];
-    if (repoUrl) {
-      return `https://github.com/${repoUrl}`;
+    const annotations = component.metadata.annotations;
+    if (!annotations) {
+      return undefined;
     }
 
-    const sourceLocation = component.metadata.annotations?.['backstage.io/source-location'];
-    if (sourceLocation?.includes('github.com')) {
-      return sourceLocation.split(':')[1];
+    // Method 1: github.com/project-slug annotation (format: "owner/repo")
+    const projectSlug = annotations['github.com/project-slug'];
+    if (projectSlug) {
+      return `https://github.com/${projectSlug}`;
     }
 
+    // Method 2: backstage.io/source-location annotation
+    const sourceLocation = annotations['backstage.io/source-location'];
+    if (sourceLocation && sourceLocation.includes('github.com')) {
+      // Remove 'url:' or 'github:' prefix if present
+      let url = sourceLocation;
+      if (url.startsWith('url:')) {
+        url = url.substring(4);
+      } else if (url.startsWith('github:')) {
+        url = url.substring(7);
+      }
+      
+      // Extract GitHub URL from various formats
+      // Handles: https://github.com/owner/repo, github.com/owner/repo, etc.
+      const githubMatch = url.match(/github\.com[/:]([^/]+\/[^/]+?)(?:\.git)?(?:$|[?#/])/);
+      if (githubMatch) {
+        return `https://github.com/${githubMatch[1]}`;
+      }
+      
+      // If it's already a full URL, return as-is
+      if (url.startsWith('https://github.com/') || url.startsWith('http://github.com/')) {
+        return url;
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Extract GitHub repository structure from URL
+   * Returns: { org: string, repo: string, path?: string }
+   */
+  private parseGitHubUrl(url: string): { org: string; repo: string; path?: string } | undefined {
+    // Match: https://github.com/org/repo or https://github.com/org/repo/tree/branch/path
+    const match = url.match(/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?(?:\/tree\/[^/]+\/(.+))?(?:[?#]|$)/);
+    if (match) {
+      return {
+        org: match[1],
+        repo: match[2],
+        path: match[3] || undefined,
+      };
+    }
     return undefined;
   }
 

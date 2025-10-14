@@ -51,9 +51,13 @@ export interface BoundedContext {
  */
 export interface ComponentReference {
   name: string;
-  entityRef: string;      // Backstage entity reference
-  type?: string;          // service, library, etc.
+  entityRef: string;
+  type: string;
   githubUrl?: string;
+  // Structured GitHub repository information
+  githubOrg?: string;      // GitHub organization/owner
+  githubRepo?: string;     // Repository name
+  githubPath?: string;     // Path within repository (if specified)
 }
 
 /**
