@@ -118,6 +118,20 @@ export default createBackendPlugin({
         logger.info('  GET /api/architecture/contexts/:contextId/dependencies');
 
         http.use(router);
+        
+        // Add auth policies to make endpoints publicly accessible
+        const publicEndpoints = [
+          '/health',
+          '/context-map',
+          '/contexts',
+        ];
+
+        publicEndpoints.forEach(path => {
+          http.addAuthPolicy({
+            path,
+            allow: 'unauthenticated',
+          });
+        });
       },
     });
   },
