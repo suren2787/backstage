@@ -23,6 +23,26 @@ export default createBackendPlugin({
 
         const router = Router();
 
+        // Serve viewer HTML
+        router.get('/viewer', (_req, res) => {
+          const fs = require('fs');
+          const path = require('path');
+          const viewerPath = path.join(__dirname, '../viewer.html');
+          
+          try {
+            if (fs.existsSync(viewerPath)) {
+              const content = fs.readFileSync(viewerPath, 'utf8');
+              res.setHeader('Content-Type', 'text/html');
+              res.send(content);
+            } else {
+              res.status(404).send(`Viewer not found at: ${viewerPath}`);
+            }
+          } catch (error: any) {
+            logger.error('Error serving viewer:', error);
+            res.status(500).send(`Error loading viewer: ${error.message}`);
+          }
+        });
+
         // Health check
         router.get('/health', (_req, res) => {
           res.json({ status: 'ok', message: 'Architecture plugin is running' });
@@ -174,6 +194,7 @@ export default createBackendPlugin({
         
         // Add auth policies to make endpoints publicly accessible
         const publicEndpoints = [
+          '/viewer',
           '/health',
           '/context-map',
           '/contexts',
