@@ -2,19 +2,42 @@
 
 A Backstage backend plugin for discovering and visualizing bounded contexts based on Domain-Driven Design (DDD) principles.
 
+## ✅ **Production Ready - Works with Your Real Catalog Data**
+
+This plugin **automatically discovers bounded contexts from your existing Backstage catalog**. No additional configuration needed beyond the prerequisites below.
+
+**What it discovers:**
+- ✅ All components in your catalog (from static-data, GitHub, or any catalog source)
+- ✅ Bounded contexts by grouping components using `spec.system` field
+- ✅ API relationships via `providesApis` and `consumesApis`
+- ✅ Cross-context dependencies and DDD patterns
+- ✅ GitHub repository URLs from component annotations
+
+**It works with:**
+- Static data imports (applications.yaml)
+- GitHub discovery locations
+- Manually registered entities
+- Any Backstage catalog provider
+
 ## Features
 
 - **Bounded Context Discovery**: Automatically discovers bounded contexts from your Backstage catalog
 - **Context Mapping**: Identifies relationships between contexts using DDD patterns
 - **API Dependency Analysis**: Maps API relationships to context boundaries
-- **GitHub Integration**: References component source code from applications.yaml or catalog metadata
-- **Direct Database Access**: Queries catalog database directly (prerequisite)
+- **GitHub Integration**: Extracts GitHub URLs from multiple annotation formats
+- **Direct Database Access**: Queries catalog database directly for performance (prerequisite)
+- **Mock Data Support**: Optional mock data for testing/development (see TESTING_WITH_MOCK_DATA.md)
 
 ## Prerequisites
 
 ⚠️ **Important**: This plugin requires direct database access to the Backstage catalog database. It queries the `final_entities` table directly using Knex.
 
 Make sure your backend has database permissions configured correctly.
+
+**Required in your catalog:**
+- Components with `spec.system` field (defines bounded context)
+- APIs linked to components via `providesApis` and `consumesApis`
+- (Optional) GitHub annotations for repository URLs
 
 ## Installation
 
@@ -125,17 +148,45 @@ The plugin identifies the following DDD relationship patterns:
 
 ## How It Works
 
-1. **Context Discovery**: Groups components by system/domain from Backstage catalog
-2. **API Analysis**: Examines `providesApis` and `consumesApis` relationships
-3. **GitHub Integration**: Extracts source URLs from component metadata
-4. **Relationship Inference**: Determines DDD patterns based on API types and domain grouping
+1. **Query Catalog Database**: Directly queries `final_entities` table for all components and APIs
+2. **Context Discovery**: Groups components by their `spec.system` field (= Bounded Context ID)
+3. **API Aggregation**: Combines all APIs from components within the same bounded context
+4. **Relationship Inference**: Detects cross-context dependencies by analyzing API consumption patterns
+5. **GitHub Integration**: Extracts repository URLs from annotations (`github.com/project-slug`, `backstage.io/source-location`)
+6. **DDD Pattern Classification**: Applies DDD relationship patterns based on domain and API analysis
+
+### Architecture Model
+
+**Key Principle:** `spec.system` = Bounded Context ID
+
+- Each Component has exactly ONE `spec.system` (its bounded context)
+- Multiple Components can share the same `spec.system` (1:N relationship)
+- APIs are aggregated from all components within a bounded context
+- Relationships link bounded contexts (not individual components)
+
+See `ARCHITECTURE_MODEL.md` for detailed explanation.
 
 ## Configuration
 
-No additional configuration required. The plugin uses:
-- Backstage's catalog API for component/API discovery
-- Component metadata for GitHub URLs
-- Existing API relationship data from static-data plugin
+### Basic Setup (Production)
+
+No additional configuration required! The plugin automatically:
+- Discovers all entities from your catalog database
+- Groups components by `spec.system`
+- Infers relationships from API dependencies
+
+### Testing Setup (Optional Mock Data)
+
+For testing/development, you can load mock data:
+
+```bash
+export ARCHITECTURE_USE_MOCK_DATA=true
+yarn workspace backend start
+```
+
+This loads 23 additional mock entities alongside your real data. See `TESTING_WITH_MOCK_DATA.md` for details.
+
+**Note:** Mock data is **NOT required** for production use. The plugin works with your real catalog data.
 
 ## Development
 
@@ -166,10 +217,28 @@ curl http://localhost:7007/api/architecture/contexts/payment-domain
 curl http://localhost:7007/api/architecture/contexts/payment-domain/dependencies
 ```
 
-## Future Enhancements
+## Current Capabilities vs Future Enhancements
 
-- [ ] Frontend visualization component with D3.js graph
-- [ ] Context health metrics and recommendations
-- [ ] Integration with BIAN framework for banking contexts
-- [ ] Support for explicit context boundary definitions
-- [ ] Context evolution tracking over time
+### ✅ Currently Working (Phase 0-4)
+- ✅ **Context Discovery** - Groups components by `spec.system`
+- ✅ **API Aggregation** - Combines APIs from all services in context
+- ✅ **Relationship Detection** - Finds cross-context API dependencies
+- ✅ **GitHub URL Extraction** - Multiple annotation format support
+- ✅ **DDD Patterns** - Infrastructure for all 8 DDD relationship types
+- ✅ **REST API** - 5 endpoints for querying context map
+- ✅ **Works with Real Catalog Data** - No mock data needed
+
+### 🔮 Future Enhancements (Phase 5+)
+These add **deeper analysis** capabilities:
+
+- [ ] **Repository Analysis** - Clone repos and parse `application.yml` for databases/Kafka topics
+- [ ] **Shared Database Detection** - Anti-pattern: multiple contexts sharing same database
+- [ ] **Kafka Topic Analysis** - Event-driven relationships (not visible via REST APIs alone)
+- [ ] **Shared Library Detection** - True SHARED_KERNEL vs just API dependencies
+- [ ] **Anti-Pattern Detection** - Identify architectural violations
+- [ ] **Frontend Visualization** - D3.js graph visualization component
+- [ ] **Context Health Metrics** - Recommendations and health scores
+- [ ] **BIAN Framework Integration** - Banking-specific context mapping
+- [ ] **Context Evolution Tracking** - Historical analysis over time
+
+See `CONTEXT_MAPPING_PLAN.md` for roadmap details.
