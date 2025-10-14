@@ -180,6 +180,29 @@ export default createBackendPlugin({
           }
         });
 
+        // Serve the standalone HTML viewer
+        router.get('/viewer', (_req, res) => {
+          const viewerHtml = fs.readFileSync(
+            path.join(__dirname, '../viewer.html'),
+            'utf-8'
+          );
+          res.setHeader('Content-Type', 'text/html');
+          res.send(viewerHtml);
+        });
+
+        // Serve the viewer JavaScript file
+        router.get('/viewer.js', (_req, res) => {
+          const viewerJs = fs.readFileSync(
+            path.join(__dirname, '../viewer.js'),
+            'utf-8'
+          );
+          res.setHeader('Content-Type', 'application/javascript');
+          res.send(viewerJs);
+        });
+
+        // Register router
+        http.use(router);
+
         // Register router
         http.use(router);
 
