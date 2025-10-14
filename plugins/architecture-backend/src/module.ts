@@ -330,6 +330,15 @@ export default createBackendModule({
         // Initialize database connection
         await moduleInstance.initialize(database);
 
+        // Optional: Load mock data for testing
+        // Uncomment to automatically populate mock entities
+        if (process.env.ARCHITECTURE_USE_MOCK_DATA === 'true') {
+          logger.info('ARCHITECTURE_USE_MOCK_DATA enabled - loading mock provider');
+          const { MockArchitectureProvider } = await import('./mockProvider');
+          const mockProvider = new MockArchitectureProvider(logger);
+          catalog.addEntityProvider(mockProvider);
+        }
+
         // Register a minimal entity provider (required for catalogProcessingExtensionPoint)
         catalog.addEntityProvider({
           getProviderName: () => 'ArchitectureObserver',

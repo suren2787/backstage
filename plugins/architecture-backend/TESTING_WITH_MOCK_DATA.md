@@ -43,7 +43,34 @@ Since we don't have access to real repositories in this environment, we've creat
 
 ## Loading Mock Data
 
-### Option 1: Manual SQL Insert (Recommended for Testing)
+### Option 1: Environment Variable (Easiest)
+
+Set the environment variable to automatically load mock data:
+
+```bash
+# In app-config.yaml or your environment
+export ARCHITECTURE_USE_MOCK_DATA=true
+
+# Then restart the backend
+yarn start-backend
+```
+
+The mock provider will automatically:
+- Register with the catalog
+- Load all 23 mock entities
+- Make them available for context discovery
+- Log a summary of loaded entities
+
+Check the logs for:
+```
+MockArchitectureProvider: Loaded 23 mock entities
+  - Domains: 3
+  - Systems: 5
+  - APIs: 8
+  - Components: 7
+```
+
+### Option 2: Manual SQL Insert (Alternative)
 
 1. **Generate the mock entities:**
 ```bash
@@ -93,41 +120,20 @@ async loadMockData() {
 }
 ```
 
-### Option 3: Create Mock Entity Provider
+### Option 3: Programmatic Provider (Already Implemented!)
 
-Create a temporary entity provider that serves mock data:
+The mock provider is already implemented in `src/mockProvider.ts` and automatically loads when you set the environment variable (see Option 1).
+
+If you want to always load mock data without the env variable, edit `src/module.ts` and change:
 
 ```typescript
-// In a new file: mock-provider.ts
-import { EntityProvider } from '@backstage/plugin-catalog-node';
-import { generateMockCatalogEntities } from './mockData';
-
-export class MockEntityProvider implements EntityProvider {
-  getProviderName(): string {
-    return 'MockArchitectureDataProvider';
-  }
-
-  async connect(connection: EntityProviderConnection): Promise<void> {
-    const entities = generateMockCatalogEntities();
-    
-    await connection.applyMutation({
-      type: 'full',
-      entities: entities.map(entity => ({
-        entity,
-        locationKey: 'mock-architecture-provider',
-      })),
-    });
-  }
-}
+if (process.env.ARCHITECTURE_USE_MOCK_DATA === 'true') {
 ```
 
-Then register it in `packages/backend/src/index.ts`:
+to:
 
 ```typescript
-import { MockEntityProvider } from '../../plugins/architecture-backend/src/mock-provider';
-
-// In catalog module initialization
-catalog.addEntityProvider(new MockEntityProvider());
+if (true) { // Always load mock data
 ```
 
 ## Testing Endpoints
