@@ -253,10 +253,14 @@ export async function createDatabaseClient(
   database: DatabaseService,
   logger: LoggerService,
 ): Promise<DatabaseClient> {
+  logger.info('createDatabaseClient: Getting database client...');
   const knex = await database.getClient();
+  logger.info('createDatabaseClient: Got knex client');
 
   // Ensure table exists
+  logger.info('createDatabaseClient: Ensuring table exists...');
   await ensureTable(knex, logger);
+  logger.info('createDatabaseClient: Table ensured');
 
   return new SyncHistoryDatabaseClient(knex, logger);
 }

@@ -22,6 +22,7 @@ export class StaticDataEntityProvider implements EntityProvider {
   ) {
     this.github = github;
     this.databaseClient = databaseClient;
+    this.logger.info(`StaticDataEntityProvider constructor: databaseClient ${databaseClient ? 'PROVIDED' : 'NOT PROVIDED'}`);
     this.provider = new StaticDataProvider({
       logger,
       github,
@@ -159,10 +160,15 @@ export class StaticDataEntityProvider implements EntityProvider {
   }
 
   private async saveSyncHistory(record: SyncHistoryRecord): Promise<void> {
-    if (!this.databaseClient) return;
+    if (!this.databaseClient) {
+      this.logger.warn('Database client not available - sync history will not be persisted');
+      return;
+    }
 
     try {
+      this.logger.info(`Saving sync history to database: ${record.id}`);
       await this.databaseClient.saveSyncHistory(record);
+      this.logger.info(`Successfully saved sync history: ${record.id}`);
     } catch (error) {
       this.logger.error('Failed to save sync history to database', error as Error);
       // Don't throw - sync succeeded even if we couldn't save history

@@ -46,10 +46,12 @@ export default createBackendModule({
         // Initialize database client
         let databaseClient;
         try {
+          logger.info('StaticDataEntityProvider: initializing database client...');
           databaseClient = await createDatabaseClient(database, logger);
-          logger.info('StaticDataEntityProvider: database client initialized');
+          logger.info('StaticDataEntityProvider: database client initialized successfully');
         } catch (error) {
           logger.error('StaticDataEntityProvider: failed to initialize database client', error as Error);
+          logger.error('StaticDataEntityProvider: error details:', error);
           // Continue without database tracking
         }
 

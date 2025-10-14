@@ -31,6 +31,24 @@ export default createBackendPlugin({
           res.json({ status: 'ok', message: 'Static data plugin is running' });
         });
 
+        // Debug endpoint to check provider's database client status
+        router.get('/debug/provider-db-status', (_req, res) => {
+          const provider = getProviderInstance();
+          if (!provider) {
+            res.json({ provider: 'not initialized' });
+            return;
+          }
+          
+          // Access private field for debugging (not ideal but necessary)
+          const hasDatabaseClient = !!(provider as any).databaseClient;
+          
+          res.json({ 
+            provider: 'initialized',
+            hasDatabaseClient,
+            httpRoutesHasDbClient: !!databaseClient
+          });
+        });
+
         // Manual refresh endpoint
         router.post('/refresh', async (_req, res) => {
           const provider = getProviderInstance();
