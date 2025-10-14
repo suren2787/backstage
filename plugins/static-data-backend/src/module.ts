@@ -20,8 +20,9 @@ export default createBackendModule({
         catalog: catalogProcessingExtensionPoint,
         logger: coreServices.logger,
         config: coreServices.rootConfig,
+        scheduler: coreServices.scheduler,
       },
-      async init({ catalog, logger, config }) {
+      async init({ catalog, logger, config, scheduler }) {
         // Read configuration from app-config.yaml
         const staticDataConfig = config.getOptionalConfig('staticData');
         const githubConfig = staticDataConfig?.getOptionalConfig('github');
@@ -29,6 +30,11 @@ export default createBackendModule({
         const repo = githubConfig?.getOptionalString('repo') || process.env.STATIC_DATA_REPO || 'suren2787/static-data';
         const token = githubConfig?.getOptionalString('token') || process.env.STATIC_DATA_GITHUB_TOKEN;
         const branch = githubConfig?.getOptionalString('branch') || process.env.STATIC_DATA_BRANCH || 'master';
+        
+        // Read schedule configuration (default: every 30 minutes)
+        const scheduleFrequency = staticDataConfig?.getOptionalString('schedule.frequency') || 
+                                  process.env.STATIC_DATA_SCHEDULE_FREQUENCY || 
+                                  '*/30 * * * *'; // cron format: every 30 minutes
 
         if (!token) {
           logger.warn('StaticDataEntityProvider: GitHub token not configured. Provider will not be registered.');
@@ -48,6 +54,24 @@ export default createBackendModule({
         // Register with catalog
         catalog.addEntityProvider(providerInstance);
         logger.info(`StaticDataEntityProvider registered with catalog (repo: ${repo}, branch: ${branch})`);
+        
+        // Schedule periodic refresh
+        await scheduler.scheduleTask({
+          id: 'static-data-refresh',
+          frequency: { cron: scheduleFrequency },
+          timeout: { minutes: 10 },
+          fn: async () => {
+            logger.info('StaticDataEntityProvider: scheduled refresh starting');
+            try {
+              const result = await providerInstance!.refresh();
+              logger.info(`StaticDataEntityProvider: scheduled refresh completed - imported ${result.imported} entities with ${result.errors.length} errors`);
+            } catch (error: any) {
+              logger.error('StaticDataEntityProvider: scheduled refresh failed', error);
+            }
+          },
+        });
+        
+        logger.info(`StaticDataEntityProvider: scheduled refresh configured (frequency: ${scheduleFrequency})`);
       },
     });
   },

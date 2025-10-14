@@ -118,6 +118,12 @@ staticData:
     domains: 'data/domains.json'
     applications: 'data/applications.json'
     apis: 'data/apis.json'
-  refresh:
-    enabled: true
-    # schedule: '0 */6 * * *'  # Every 6 hours (for future auto-refresh)
+  schedule:
+    # Cron expression for automatic refresh (default: every 30 minutes)
+    # Examples:
+    #   - '*/30 * * * *'  - Every 30 minutes
+    #   - '0 */1 * * *'   - Every hour
+    #   - '0 */6 * * *'   - Every 6 hours
+    #   - '0 0 * * *'     - Once a day at midnight
+    #   - '0 9,17 * * *'  - Twice a day at 9 AM and 5 PM
+    frequency: '*/30 * * * *'

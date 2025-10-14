@@ -117,9 +117,9 @@ export class StaticDataProvider {
           }
         }
 
-        // Add providesApis and consumesApis to the app object for transformer
+        // Add providesApis and consumesApis ONLY to Component entities
         const aObj = a as any;
-
+        let appWithApis: any = { ...aObj };
         // Only set providesApis/consumesApis if non-empty, and use correct entity ref format
         const providesApis = producesApi
           .map(api => `API:default/${api}`)
@@ -128,15 +128,15 @@ export class StaticDataProvider {
           .map(api => `API:default/${api}`)
           .filter(Boolean);
 
-        if (providesApis.length > 0 || consumesApis.length > 0) {
+        // Only add providesApis/consumesApis if this is a Component (not System, Domain, etc)
+        if ((aObj.kind === undefined || aObj.kind === 'Component') && (providesApis.length > 0 || consumesApis.length > 0)) {
           logger.info(`StaticDataProvider: ${aObj.id} - providesApis: ${JSON.stringify(providesApis)}, consumesApis: ${JSON.stringify(consumesApis)}`);
+          appWithApis = {
+            ...aObj,
+            ...(providesApis.length > 0 ? { providesApis } : {}),
+            ...(consumesApis.length > 0 ? { consumesApis } : {}),
+          };
         }
-
-        const appWithApis = {
-          ...aObj,
-          ...(providesApis.length > 0 ? { providesApis } : {}),
-          ...(consumesApis.length > 0 ? { consumesApis } : {}),
-        };
 
         // Pass to transformer
         const component = applicationToComponent(appWithApis);

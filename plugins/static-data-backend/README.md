@@ -54,6 +54,34 @@ staticData:
     squads: 'data/squads.json'
     boundedContexts: 'data/bounded-contexts.json'
     domains: 'data/domains.json'
+  
+  # Optional: Configure scheduled refresh
+  schedule:
+    # Cron expression for automatic refresh (default: every 30 minutes)
+    # Examples:
+    #   - '*/30 * * * *'  - Every 30 minutes (default)
+    #   - '0 */1 * * *'   - Every hour
+    #   - '0 */6 * * *'   - Every 6 hours
+    #   - '0 0 * * *'     - Once a day at midnight
+    #   - '0 9,17 * * *'  - Twice a day at 9 AM and 5 PM
+    frequency: '*/30 * * * *'
+```
+
+### Scheduled Refresh
+
+The plugin automatically refreshes data on a configurable schedule:
+
+- **Default**: Every 30 minutes
+- **Customizable**: Use cron expressions in `staticData.schedule.frequency`
+- **Actions Performed**:
+  - Fetches latest data from GitHub static-data repo
+  - Re-parses all build.gradle files for API relations
+  - Updates catalog entities
+  - Detects new/removed components and APIs
+
+**Environment Variable Override:**
+```bash
+export STATIC_DATA_SCHEDULE_FREQUENCY='0 */2 * * *'  # Every 2 hours
 ```
 
 ### GitHub Repository Structure
@@ -225,7 +253,7 @@ StaticDataProvider: Failed to fetch/parse build.gradle for myorg/repo:
 
 ### 1. Manual Refresh
 
-Trigger a manual catalog refresh:
+Trigger a manual catalog refresh (on-demand, independent of scheduled refresh):
 
 ```bash
 curl -X POST http://localhost:7007/api/static-data/refresh
@@ -238,6 +266,14 @@ curl -X POST http://localhost:7007/api/static-data/refresh
   "errors": []
 }
 ```
+
+**Use Cases:**
+- Immediate refresh after updating static-data repository
+- Testing changes before scheduled refresh
+- Emergency updates for critical configuration changes
+- On-demand refresh via CI/CD pipeline after deployments
+
+**Note:** Manual refresh does not affect the scheduled refresh cycle. Both operate independently.
 
 ---
 
