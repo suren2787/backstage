@@ -9,6 +9,8 @@ import { coreServices } from '@backstage/backend-plugin-api';
 import { Router } from 'express';
 import { getModuleInstance } from './module';
 import { generateMockCatalogEntities, getMockDataSummary, getExpectedContextMap } from './mockData';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export default createBackendPlugin({
   pluginId: 'architecture',
@@ -203,9 +205,6 @@ export default createBackendPlugin({
         // Register router
         http.use(router);
 
-        // Register router
-        http.use(router);
-
         logger.info('Architecture plugin initialized with endpoints:');
         logger.info('  GET /api/architecture/health');
         logger.info('  GET /api/architecture/context-map');
@@ -218,6 +217,7 @@ export default createBackendPlugin({
         // Add auth policies to make endpoints publicly accessible
         const publicEndpoints = [
           '/viewer',
+          '/viewer.js',
           '/health',
           '/context-map',
           '/contexts',
