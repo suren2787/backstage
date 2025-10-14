@@ -2,6 +2,7 @@ import { StaticDataEntityProvider } from './catalogProvider';
 import { createBackendModule } from '@backstage/backend-plugin-api';
 import { catalogProcessingExtensionPoint } from '@backstage/plugin-catalog-node/alpha';
 import { coreServices } from '@backstage/backend-plugin-api';
+import { createDatabaseClient } from './database/client';
 
 // Store provider instance globally so the HTTP plugin can access it
 let providerInstance: StaticDataEntityProvider | undefined;
@@ -21,8 +22,9 @@ export default createBackendModule({
         logger: coreServices.logger,
         config: coreServices.rootConfig,
         scheduler: coreServices.scheduler,
+        database: coreServices.database,
       },
-      async init({ catalog, logger, config, scheduler }) {
+      async init({ catalog, logger, config, scheduler, database }) {
         // Read configuration from app-config.yaml
         const staticDataConfig = config.getOptionalConfig('staticData');
         const githubConfig = staticDataConfig?.getOptionalConfig('github');
@@ -41,14 +43,25 @@ export default createBackendModule({
           return;
         }
 
-        // Create entity provider
+        // Initialize database client
+        let databaseClient;
+        try {
+          databaseClient = await createDatabaseClient(database, logger);
+          logger.info('StaticDataEntityProvider: database client initialized');
+        } catch (error) {
+          logger.error('StaticDataEntityProvider: failed to initialize database client', error as Error);
+          // Continue without database tracking
+        }
+
+        // Create entity provider with database client
         providerInstance = new StaticDataEntityProvider(
           logger as any,
           {
             repo,
             token,
             branch,
-          }
+          },
+          databaseClient
         );
 
         // Register with catalog
@@ -63,10 +76,10 @@ export default createBackendModule({
           fn: async () => {
             logger.info('StaticDataEntityProvider: scheduled refresh starting');
             try {
-              const result = await providerInstance!.refresh();
+              const result = await providerInstance!.refresh({ manual: false });
               logger.info(`StaticDataEntityProvider: scheduled refresh completed - imported ${result.imported} entities with ${result.errors.length} errors`);
             } catch (error: any) {
-              logger.error('StaticDataEntityProvider: scheduled refresh failed', error);
+              logger.error('StaticDataEntityProvider: scheduled refresh failed', error as Error);
             }
           },
         });
