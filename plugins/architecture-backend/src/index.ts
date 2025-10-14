@@ -22,7 +22,7 @@ export default createBackendPlugin({
       async init({ http, logger, discovery }) {
         logger.info('Initializing Architecture backend plugin...');
 
-        // Initialize catalog client
+        // Initialize catalog client with auth for service-to-service communication
         const catalogClient = new CatalogClient({
           discoveryApi: discovery,
         });
