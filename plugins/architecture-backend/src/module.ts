@@ -25,6 +25,15 @@ export function getModuleInstance(): ArchitectureModule | undefined {
 }
 
 /**
+ * Update entities in the module (can be called by other plugins/providers)
+ */
+export function updateEntities(entities: Entity[]) {
+  if (moduleInstance) {
+    moduleInstance.setEntities(entities);
+  }
+}
+
+/**
  * Architecture Module
  * Provides bounded context discovery and mapping using catalog entities
  */
