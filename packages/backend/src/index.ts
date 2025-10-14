@@ -74,6 +74,7 @@ backend.add(import('../../../plugins/static-data-backend/src/module')); // Catal
 backend.add(import('../../../plugins/kafka-topology-backend/src/index'));
 
 // architecture plugin for bounded context mapping
-backend.add(import('../../../plugins/architecture-backend/src/index'));
+backend.add(import('../../../plugins/architecture-backend/src/index')); // HTTP routes
+backend.add(import('../../../plugins/architecture-backend/src/module')); // Catalog module
 
 backend.start();

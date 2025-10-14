@@ -6,9 +6,8 @@
 
 import { createBackendPlugin } from '@backstage/backend-plugin-api';
 import { coreServices } from '@backstage/backend-plugin-api';
-import { CatalogClient } from '@backstage/catalog-client';
 import { Router } from 'express';
-import { ContextDiscoveryService } from './contextDiscovery';
+import { getModuleInstance } from './module';
 
 export default createBackendPlugin({
   pluginId: 'architecture',
@@ -17,21 +16,9 @@ export default createBackendPlugin({
       deps: {
         http: coreServices.httpRouter,
         logger: coreServices.logger,
-        discovery: coreServices.discovery,
       },
-      async init({ http, logger, discovery }) {
-        logger.info('Initializing Architecture backend plugin...');
-
-        // Initialize catalog client with auth for service-to-service communication
-        const catalogClient = new CatalogClient({
-          discoveryApi: discovery,
-        });
-
-        // Initialize context discovery service
-        const contextDiscovery = new ContextDiscoveryService({
-          catalogClient,
-          logger: logger as any,
-        });
+      async init({ http, logger }) {
+        logger.info('Initializing Architecture HTTP plugin...');
 
         const router = Router();
 
@@ -43,8 +30,16 @@ export default createBackendPlugin({
         // Get complete context map
         router.get('/context-map', async (_req, res) => {
           try {
+            const module = getModuleInstance();
+            if (!module) {
+              res.status(503).json({ 
+                error: 'Architecture module not initialized yet. Please wait for catalog module to load.' 
+              });
+              return;
+            }
+
             logger.info('Generating context map...');
-            const contextMap = await contextDiscovery.buildContextMap();
+            const contextMap = await module.buildContextMap();
             res.json(contextMap);
           } catch (error: any) {
             logger.error('Failed to generate context map', error);
@@ -55,8 +50,16 @@ export default createBackendPlugin({
         // Get all bounded contexts
         router.get('/contexts', async (_req, res) => {
           try {
+            const module = getModuleInstance();
+            if (!module) {
+              res.status(503).json({ 
+                error: 'Architecture module not initialized yet. Please wait for catalog module to load.' 
+              });
+              return;
+            }
+
             logger.info('Fetching all bounded contexts...');
-            const contexts = await contextDiscovery.discoverContexts();
+            const contexts = await module.discoverContexts();
             res.json({ contexts, total: contexts.length });
           } catch (error: any) {
             logger.error('Failed to fetch contexts', error);
@@ -67,10 +70,18 @@ export default createBackendPlugin({
         // Get specific context with relationships
         router.get('/contexts/:contextId', async (req, res) => {
           try {
+            const module = getModuleInstance();
+            if (!module) {
+              res.status(503).json({ 
+                error: 'Architecture module not initialized yet. Please wait for catalog module to load.' 
+              });
+              return;
+            }
+
             const { contextId } = req.params;
             logger.info(`Fetching context: ${contextId}`);
             
-            const analysis = await contextDiscovery.analyzeContext(contextId);
+            const analysis = await module.analyzeContext(contextId);
             
             if (!analysis) {
               res.status(404).json({ error: 'Context not found' });
@@ -87,10 +98,18 @@ export default createBackendPlugin({
         // Get context dependencies (upstream and downstream)
         router.get('/contexts/:contextId/dependencies', async (req, res) => {
           try {
+            const module = getModuleInstance();
+            if (!module) {
+              res.status(503).json({ 
+                error: 'Architecture module not initialized yet. Please wait for catalog module to load.' 
+              });
+              return;
+            }
+
             const { contextId } = req.params;
             logger.info(`Fetching dependencies for context: ${contextId}`);
             
-            const analysis = await contextDiscovery.analyzeContext(contextId);
+            const analysis = await module.analyzeContext(contextId);
             
             if (!analysis) {
               res.status(404).json({ error: 'Context not found' });
