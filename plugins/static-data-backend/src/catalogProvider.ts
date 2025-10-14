@@ -81,19 +81,6 @@ export class StaticDataEntityProvider implements EntityProvider {
           })),
         });
         this.logger.info(`StaticDataEntityProvider: applied ${result.entities.length} entities to catalog`);
-
-        // Share entities with architecture module for context mapping
-        try {
-          // Dynamic import to avoid hard dependency
-          const architectureModule = await import('../../../architecture-backend/src/module');
-          if (architectureModule && architectureModule.updateEntities) {
-            architectureModule.updateEntities(result.entities);
-            this.logger.info(`Shared ${result.entities.length} entities with architecture module`);
-          }
-        } catch (error) {
-          // Architecture module not available - that's okay
-          this.logger.debug('Architecture module not available for entity sharing', error);
-        }
       }
 
       const endTime = new Date();

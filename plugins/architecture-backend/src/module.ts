@@ -1,14 +1,15 @@
 /**
  * Architecture Catalog Module
  * 
- * Integrates with the Backstage catalog to access entity data directly.
- * This module has access to catalog entities without needing HTTP/auth.
+ * Queries the catalog database directly to access entity data.
+ * This is a prerequisite plugin that requires direct database access.
  */
 
 import { createBackendModule } from '@backstage/backend-plugin-api';
 import { catalogProcessingExtensionPoint } from '@backstage/plugin-catalog-node/alpha';
 import { coreServices } from '@backstage/backend-plugin-api';
 import { Entity } from '@backstage/catalog-model';
+import { Knex } from 'knex';
 import {
   BoundedContext,
   ApiReference,
@@ -25,32 +26,56 @@ export function getModuleInstance(): ArchitectureModule | undefined {
 }
 
 /**
- * Update entities in the module (can be called by other plugins/providers)
- */
-export function updateEntities(entities: Entity[]) {
-  if (moduleInstance) {
-    moduleInstance.setEntities(entities);
-  }
-}
-
-/**
  * Architecture Module
- * Provides bounded context discovery and mapping using catalog entities
+ * Provides bounded context discovery and mapping using direct database queries
  */
 export class ArchitectureModule {
-  private entities: Entity[] = [];
   private readonly logger: any;
+  private knexClient: Knex | null = null;
 
   constructor(logger: any) {
     this.logger = logger;
   }
 
   /**
-   * Update entities cache (called by catalog refresh)
+   * Initialize database connection
    */
-  setEntities(entities: Entity[]) {
-    this.entities = entities;
-    this.logger.info(`Architecture module: cached ${entities.length} entities`);
+  async initialize(databaseService: any) {
+    this.knexClient = await databaseService.getClient();
+    this.logger.info('Architecture module: Database client initialized');
+  }
+
+  /**
+   * Get all entities from database
+   */
+  private async getEntities(): Promise<Entity[]> {
+    if (!this.knexClient) {
+      this.logger.error('Database client not initialized');
+      return [];
+    }
+
+    try {
+      const rows = await this.knexClient('final_entities')
+        .select('entity_id', 'final_entity')
+        .orderBy('entity_id');
+
+      const entities = rows
+        .map(row => {
+          try {
+            return JSON.parse(row.final_entity) as Entity;
+          } catch (error) {
+            this.logger.warn(`Failed to parse entity ${row.entity_id}:`, error);
+            return null;
+          }
+        })
+        .filter((e): e is Entity => e !== null);
+
+      this.logger.info(`Architecture: Retrieved ${entities.length} entities from database`);
+      return entities;
+    } catch (error) {
+      this.logger.error('Failed to query entities from database:', error);
+      return [];
+    }
   }
 
   /**
@@ -59,8 +84,10 @@ export class ArchitectureModule {
   async discoverContexts(): Promise<BoundedContext[]> {
     this.logger.info('Architecture: Discovering bounded contexts...');
 
-    const components = this.entities.filter(e => e.kind === 'Component');
-    const apis = this.entities.filter(e => e.kind === 'API');
+    // Query entities from database
+    const entities = await this.getEntities();
+    const components = entities.filter(e => e.kind === 'Component');
+    const apis = entities.filter(e => e.kind === 'API');
 
     this.logger.info(`Architecture: Found ${components.length} components, ${apis.length} APIs`);
 
@@ -292,23 +319,26 @@ export default createBackendModule({
       deps: {
         catalog: catalogProcessingExtensionPoint,
         logger: coreServices.logger,
+        database: coreServices.database,
       },
-      async init({ catalog, logger }) {
-        logger.info('Initializing Architecture catalog module...');
+      async init({ catalog, logger, database }) {
+        logger.info('Initializing Architecture catalog module with direct DB access...');
 
         // Create module instance
         moduleInstance = new ArchitectureModule(logger);
+        
+        // Initialize database connection
+        await moduleInstance.initialize(database);
 
-        // Register a simple observer to get entity updates
-        // Note: This is a simplified approach - in production you'd want a proper entity provider
+        // Register a minimal entity provider (required for catalogProcessingExtensionPoint)
         catalog.addEntityProvider({
           getProviderName: () => 'ArchitectureObserver',
           connect: async () => {
-            logger.info('Architecture module connected to catalog');
+            logger.info('Architecture module connected to catalog with DB access');
           },
         });
 
-        logger.info('Architecture catalog module initialized');
+        logger.info('Architecture catalog module initialized (prerequisite: direct DB access)');
       },
     });
   },

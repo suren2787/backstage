@@ -8,6 +8,13 @@ A Backstage backend plugin for discovering and visualizing bounded contexts base
 - **Context Mapping**: Identifies relationships between contexts using DDD patterns
 - **API Dependency Analysis**: Maps API relationships to context boundaries
 - **GitHub Integration**: References component source code from applications.yaml or catalog metadata
+- **Direct Database Access**: Queries catalog database directly (prerequisite)
+
+## Prerequisites
+
+⚠️ **Important**: This plugin requires direct database access to the Backstage catalog database. It queries the `final_entities` table directly using Knex.
+
+Make sure your backend has database permissions configured correctly.
 
 ## Installation
 
@@ -18,10 +25,14 @@ cd packages/backend
 yarn add @suren/architecture-backend
 ```
 
-2. Register the plugin in `packages/backend/src/index.ts`:
+2. Register **both** the HTTP plugin and catalog module in `packages/backend/src/index.ts`:
 
 ```typescript
+// HTTP endpoints for API access
 backend.add(import('../../plugins/architecture-backend/src/index'));
+
+// Catalog module for direct DB access
+backend.add(import('../../plugins/architecture-backend/src/module'));
 ```
 
 ## API Endpoints
