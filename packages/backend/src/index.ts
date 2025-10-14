@@ -73,4 +73,7 @@ backend.add(import('../../../plugins/static-data-backend/src/module')); // Catal
 // kafka-topology-backend plugin
 backend.add(import('../../../plugins/kafka-topology-backend/src/index'));
 
+// architecture plugin for bounded context mapping
+backend.add(import('../../../plugins/architecture-backend/src/index'));
+
 backend.start();
