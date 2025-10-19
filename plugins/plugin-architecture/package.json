@@ -1,0 +1,17 @@
+{
+  "name": "plugin-architecture",
+  "version": "0.1.0",
+  "main": "src/index.ts",
+  "backstage": {
+    "role": "frontend-plugin"
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@backstage/core-components": "^0.18.0",
+    "@backstage/core-plugin-api": "^1.11.0",
+    "dagre": "^0.8.5",
+    "react-flow-renderer": "10.3.17"
+  }
+}

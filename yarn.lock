@@ -14994,9 +14994,12 @@ __metadata:
     "@testing-library/user-event": "npm:^14.0.0"
     "@types/react-dom": "npm:*"
     cross-env: "npm:^7.0.0"
+    dagre: "npm:^0.8.5"
+    plugin-architecture: "workspace:plugins/plugin-architecture"
     plugin-kafka-topology: "workspace:plugins/kafka-topology"
     react: "npm:^18.0.2"
     react-dom: "npm:^18.0.2"
+    react-flow-renderer: "npm:10.3.17"
     react-router: "npm:^6.3.0"
     react-router-dom: "npm:^6.3.0"
   languageName: unknown
@@ -21571,7 +21574,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"http-proxy-middleware@npm:*":
+"http-proxy-middleware@npm:*, http-proxy-middleware@npm:^3.0.5":
   version: 3.0.5
   resolution: "http-proxy-middleware@npm:3.0.5"
   dependencies:
@@ -27542,6 +27545,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"plugin-architecture@workspace:plugins/plugin-architecture":
+  version: 0.0.0-use.local
+  resolution: "plugin-architecture@workspace:plugins/plugin-architecture"
+  dependencies:
+    "@backstage/core-components": "npm:^0.18.0"
+    "@backstage/core-plugin-api": "npm:^1.11.0"
+    dagre: "npm:^0.8.5"
+    react-flow-renderer: "npm:10.3.17"
+  languageName: unknown
+  linkType: soft
+
 "plugin-kafka-topology@workspace:plugins/kafka-topology":
   version: 0.0.0-use.local
   resolution: "plugin-kafka-topology@workspace:plugins/kafka-topology"
@@ -30059,6 +30073,7 @@ __metadata:
     "@types/uuid": "npm:^11.0.0"
     dotenv-cli: "npm:^10.0.0"
     gradle-to-js: "npm:^2.0.1"
+    http-proxy-middleware: "npm:^3.0.5"
     node-gyp: "npm:^10.0.0"
     prettier: "npm:^2.3.2"
     typescript: "npm:~5.8.0"

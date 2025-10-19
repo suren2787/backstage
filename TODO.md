@@ -219,4 +219,55 @@ plugins/kafka-topology-backend/
         githubToken: ${STATIC_DATA_GITHUB_TOKEN}
     ```
 
-## Milestone 5: Future Enhancements
+## Milestone 5: C4 Model Architecture Diagrams
+**Goal**: Analyze microservice repositories and create C4 model diagrams (Context & Container level) for each bounded context
+
+**C4 Model Levels:**
+- Level 1: System Context (bounded context as a system, external dependencies)
+- Level 2: Container (microservices, databases, APIs within bounded context)
+- Level 3: Component (detailed components within each container) - *optional phase 2*
+- Level 4: Code (classes, methods) - *optional phase 2*
+
+### Phase 1: Core Implementation
+- [ ] Create new `c4-diagrams` plugin for C4 model visualization
+  - [ ] Set up plugin structure at `plugins/c4-diagrams/`
+  - [ ] Create React component for interactive C4 diagram rendering
+  - [ ] Use Mermaid.js or React Flow for diagram visualization
+  - [ ] Support diagram navigation (zoom, pan, highlight relationships)
+
+- [ ] Analyze microservice repositories
+  - [ ] Scan provided microservice repositories for each bounded context
+  - [ ] Parse architecture patterns (async/sync communication, databases, external services)
+  - [ ] Extract component dependencies and data flows
+  - [ ] Document communication patterns (REST, gRPC, Kafka, events)
+
+- [ ] Backend plugin for C4 diagram generation
+  - [ ] Create `c4-diagrams-backend` plugin
+  - [ ] Implement repository analyzer (detects services, databases, APIs)
+  - [ ] Generate C4 model JSON from repository analysis
+  - [ ] Expose API endpoints for diagram data per bounded context
+  - [ ] Cache analyzed results in database
+
+- [ ] Data extraction & mapping
+  - [ ] Map bounded contexts to their microservices
+  - [ ] Identify internal containers (services, DBs, message queues)
+  - [ ] Map inter-context dependencies to relationships
+  - [ ] Document technology stack per service
+
+- [ ] Frontend integration
+  - [ ] Create C4 diagram view in Backstage UI
+  - [ ] Add sidebar navigation entry for C4 Diagrams
+  - [ ] Implement bounded context selector with available diagrams
+  - [ ] Show Context level diagram by default
+  - [ ] Add "Drill Down" button to show Container level details
+  - [ ] Display legend with technology icons (Node.js, Python, PostgreSQL, Kafka, etc.)
+
+### Phase 2: Advanced Features (Future)
+- [ ] Component level diagrams (Level 3)
+- [ ] Code interaction diagrams (Level 4)
+- [ ] Automated architecture decision documentation
+- [ ] Dependency impact analysis
+- [ ] Technology debt visualization
+- [ ] Auto-update diagrams on repository changes
+
+## Milestone 6: Future Enhancements

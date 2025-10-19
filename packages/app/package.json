@@ -43,9 +43,12 @@
     "@backstage/ui": "^0.7.1",
     "@material-ui/core": "^4.12.2",
     "@material-ui/icons": "^4.9.1",
+    "dagre": "^0.8.5",
+    "plugin-architecture": "workspace:plugins/plugin-architecture",
     "plugin-kafka-topology": "workspace:plugins/kafka-topology",
     "react": "^18.0.2",
     "react-dom": "^18.0.2",
+    "react-flow-renderer": "10.3.17",
     "react-router": "^6.3.0",
     "react-router-dom": "^6.3.0"
   },

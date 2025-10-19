@@ -25,25 +25,7 @@ export default createBackendPlugin({
 
         const router = Router();
 
-        // Serve viewer HTML
-        router.get('/viewer', (_req, res) => {
-          const fs = require('fs');
-          const path = require('path');
-          const viewerPath = path.join(__dirname, '../viewer.html');
-          
-          try {
-            if (fs.existsSync(viewerPath)) {
-              const content = fs.readFileSync(viewerPath, 'utf8');
-              res.setHeader('Content-Type', 'text/html');
-              res.send(content);
-            } else {
-              res.status(404).send(`Viewer not found at: ${viewerPath}`);
-            }
-          } catch (error: any) {
-            logger.error('Error serving viewer:', error);
-            res.status(500).send(`Error loading viewer: ${error.message}`);
-          }
-        });
+        // ...existing code...
 
         // Health check
         router.get('/health', (_req, res) => {
@@ -182,22 +164,29 @@ export default createBackendPlugin({
           }
         });
 
-        // Serve the standalone HTML viewer
+        // Serve the standalone HTML viewer (with permissive CSP for framing by frontend)
         router.get('/viewer', (_req, res) => {
           const viewerHtml = fs.readFileSync(
             path.join(__dirname, '../viewer.html'),
             'utf-8'
           );
+          // Allow frontend (dev server) to embed this page in an iframe
+          // Note: replace with your frontend origin(s) in production
+          res.setHeader('Content-Security-Policy', "frame-ancestors 'self' http://localhost:3000");
+          // Older browsers may still check X-Frame-Options
+          res.setHeader('X-Frame-Options', 'ALLOW-FROM http://localhost:3000');
           res.setHeader('Content-Type', 'text/html');
           res.send(viewerHtml);
         });
 
-        // Serve the viewer JavaScript file
+        // Serve the viewer JavaScript file (also allow framing origin headers)
         router.get('/viewer.js', (_req, res) => {
           const viewerJs = fs.readFileSync(
             path.join(__dirname, '../viewer.js'),
             'utf-8'
           );
+          res.setHeader('Content-Security-Policy', "frame-ancestors 'self' http://localhost:3000");
+          res.setHeader('X-Frame-Options', 'ALLOW-FROM http://localhost:3000');
           res.setHeader('Content-Type', 'application/javascript');
           res.send(viewerJs);
         });

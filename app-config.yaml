@@ -58,6 +58,9 @@ proxy:
   '/api/static-data':
     target: 'http://localhost:7007'
     changeOrigin: true
+  '/api/architecture':
+    target: 'http://localhost:7007'
+    changeOrigin: true
   ### Example for how to add a proxy endpoint for the frontend.
   ### A typical reason to do this is to handle HTTPS and CORS for internal services.
   # endpoints:
@@ -94,7 +97,7 @@ catalog:
     entityFilename: catalog-info.yaml
     pullRequestBranchName: backstage-integration
   rules:
-    - allow: [Component, System, API, Resource, Location, Domain, Group]
+    - allow: ["Component", "System", "API", "Resource", "Location", "Domain", "Group"]
   locations:
     # All entities are provided by the StaticDataEntityProvider
     # No local file locations needed - data comes from GitHub static-data repo

@@ -5,6 +5,7 @@ import ExtensionIcon from '@material-ui/icons/Extension';
 import LibraryBooks from '@material-ui/icons/LibraryBooks';
 import CreateComponentIcon from '@material-ui/icons/AddCircleOutline';
 import DomainIcon from '@material-ui/icons/Language';
+import ArchitectureIcon from '@material-ui/icons/AccountTree';
 import SystemIcon from '@material-ui/icons/SettingsEthernet';
 import ComponentIcon from '@material-ui/icons/Widgets';
 import SquadIcon from '@material-ui/icons/GroupWork';
@@ -86,9 +87,13 @@ export const Root = ({ children }: PropsWithChildren<{}>) => (
         <SidebarItem icon={SystemIcon} to="/catalog?filters[kind]=system" text="Systems" />
         <SidebarItem icon={ComponentIcon} to="/catalog?filters[kind]=component" text="Components" />
         <SidebarItem icon={SquadIcon} to="/catalog?filters[kind]=group" text="Squads" />
-        {/* Kafka Topology navigation */}
+        {/* Architecture navigation */}
         <SidebarDivider />
-        <SidebarItem icon={ExtensionIcon} to="/kafka-topology" text="Kafka Topology" />
+        <SidebarGroup label="Architecture" icon={<ArchitectureIcon />}>
+          <SidebarItem icon={ExtensionIcon} to="/architecture/viewer" text="Bounded Context Viewer" />
+          <SidebarItem icon={ExtensionIcon} to="/architecture/diagram" text="Architecture Diagram" />
+          <SidebarItem icon={ExtensionIcon} to="/kafka-topology" text="Kafka Topology" />
+        </SidebarGroup>
         <SidebarScrollWrapper>
           {/* Items in this group will be scrollable if they run out of space */}
         </SidebarScrollWrapper>

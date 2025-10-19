@@ -148,14 +148,7 @@ The plugin identifies the following DDD relationship patterns:
 
 ## How It Works
 
-1. **Query Catalog Database**: Directly queries `final_entities` table for all components and APIs
-2. **Context Discovery**: Groups components by their `spec.system` field (= Bounded Context ID)
-3. **API Aggregation**: Combines all APIs from components within the same bounded context
-4. **Relationship Inference**: Detects cross-context dependencies by analyzing API consumption patterns
-5. **GitHub Integration**: Extracts repository URLs from annotations (`github.com/project-slug`, `backstage.io/source-location`)
-6. **DDD Pattern Classification**: Applies DDD relationship patterns based on domain and API analysis
-
-### Architecture Model
+### Data Model
 
 **Key Principle:** `spec.system` = Bounded Context ID
 
@@ -164,7 +157,118 @@ The plugin identifies the following DDD relationship patterns:
 - APIs are aggregated from all components within a bounded context
 - Relationships link bounded contexts (not individual components)
 
-See `ARCHITECTURE_MODEL.md` for detailed explanation.
+**Bounded Context Discovery Algorithm:**
+
+```typescript
+// 1. Group components by spec.system
+for each Component:
+  boundedContext = component.spec.system
+  
+  if boundedContext not exists:
+    create new BoundedContext(id: boundedContext)
+  
+  add component to boundedContext.components[]
+  aggregate component.providesApis → boundedContext.providedApis[]
+  aggregate component.consumesApis → boundedContext.consumedApis[]
+
+// 2. Result: Map of Bounded Contexts with their microservices
+{
+  "payment-core": {
+    components: ["payment-gateway", "payment-validator"],
+    providedApis: ["payment-gateway-api", "payment-validation-api"],
+    consumedApis: ["account-api"]
+  }
+}
+```
+
+### Relationship Inference
+
+Relationships are detected **between bounded contexts** based on their microservices' API dependencies:
+
+```typescript
+// Example: payment-core consumes account-api
+
+payment-gateway (Component):
+  spec.system: payment-core
+  spec.consumesApis: [account-api]
+
+account-service (Component):
+  spec.system: account-management
+  spec.providesApis: [account-api]
+
+→ Relationship: account-management → payment-core (via account-api)
+   Type: OPEN_HOST_SERVICE (OpenAPI)
+```
+
+**Fallback Strategy:**
+
+If a component doesn't have `spec.system`:
+
+```typescript
+const contextId = component.spec.system 
+               || component.metadata.annotations['backstage.io/domain']
+               || 'default-context';
+```
+
+### Catalog Structure Example
+
+```yaml
+# Domain (optional grouping)
+kind: Domain
+metadata:
+  name: payments
+
+# Bounded Context (System)
+kind: System
+metadata:
+  name: payment-core
+  title: Payment Core Context
+spec:
+  owner: payments-squad
+
+# Microservice 1 (Component)
+kind: Component
+metadata:
+  name: payment-gateway
+spec:
+  type: service
+  system: payment-core  # ← Links to Bounded Context
+  owner: payments-squad
+  providesApis:
+    - payment-gateway-api
+  consumesApis:
+    - account-api
+
+# Microservice 2 (Component)
+kind: Component
+metadata:
+  name: payment-validator
+spec:
+  type: service
+  system: payment-core  # ← Same Bounded Context
+  owner: payments-squad
+  providesApis:
+    - payment-validation-api
+```
+
+## DDD Context Mapping Patterns
+
+The plugin identifies the following DDD relationship patterns:
+
+- **SHARED_KERNEL**: Two contexts share a common model (same domain)
+- **CUSTOMER_SUPPLIER**: Downstream is customer, upstream is supplier
+- **CONFORMIST**: Downstream conforms to upstream model
+- **ANTICORRUPTION_LAYER**: Downstream protects itself with translation layer
+- **OPEN_HOST_SERVICE**: Upstream provides well-defined protocol (OpenAPI/gRPC)
+- **PUBLISHED_LANGUAGE**: Shared, well-documented language/schema
+- **SEPARATE_WAYS**: No connection between contexts
+- **PARTNERSHIP**: Mutual dependency, coordinated planning
+
+**Detection Logic:**
+
+1. **Same Domain** → `SHARED_KERNEL`
+2. **OpenAPI/gRPC** → `OPEN_HOST_SERVICE`
+3. **Default** → `CUSTOMER_SUPPLIER`
 
 ## Configuration
 
