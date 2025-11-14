@@ -33,6 +33,13 @@ export default createBackendModule({
         const token = githubConfig?.getOptionalString('token') || process.env.STATIC_DATA_GITHUB_TOKEN;
         const branch = githubConfig?.getOptionalString('branch') || process.env.STATIC_DATA_BRANCH || 'master';
         
+        // Read GitHub Enterprise configuration (optional)
+        const enterpriseConfig = githubConfig?.getOptionalConfig('enterprise');
+        const enterprise = enterpriseConfig ? {
+          host: enterpriseConfig.getString('host'),
+          apiUrl: enterpriseConfig.getOptionalString('apiUrl'),
+        } : undefined;
+        
         // Read schedule configuration (default: every 30 minutes)
         const scheduleFrequency = staticDataConfig?.getOptionalString('schedule.frequency') || 
                                   process.env.STATIC_DATA_SCHEDULE_FREQUENCY || 
@@ -51,7 +58,6 @@ export default createBackendModule({
           logger.info('StaticDataEntityProvider: database client initialized successfully');
         } catch (error) {
           logger.error('StaticDataEntityProvider: failed to initialize database client', error as Error);
-          logger.error('StaticDataEntityProvider: error details:', error);
           // Continue without database tracking
         }
 
@@ -62,13 +68,15 @@ export default createBackendModule({
             repo,
             token,
             branch,
+            enterprise,
           },
           databaseClient
         );
 
         // Register with catalog
+        const hostInfo = enterprise ? ` (GitHub Enterprise: ${enterprise.host})` : '';
         catalog.addEntityProvider(providerInstance);
-        logger.info(`StaticDataEntityProvider registered with catalog (repo: ${repo}, branch: ${branch})`);
+        logger.info(`StaticDataEntityProvider registered with catalog (repo: ${repo}, branch: ${branch})${hostInfo}`);
         
         // Schedule periodic refresh
         await scheduler.scheduleTask({
