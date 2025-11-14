@@ -116,6 +116,11 @@ staticData:
     repo: ${STATIC_DATA_REPO}
     branch: ${STATIC_DATA_BRANCH}
     token: ${STATIC_DATA_GITHUB_TOKEN}
+    # GitHub Enterprise Configuration (optional)
+    # Uncomment and configure if using GitHub Enterprise instead of public GitHub
+    # enterprise:
+    #   host: github.company.com                    # GitHub Enterprise host (without https://)
+    #   apiUrl: https://github.company.com/api/v3  # API endpoint (optional, auto-generated if not provided)
   files:
     squads: 'data/squads.json'
     domains: 'data/domains.json'
