@@ -1,13 +1,12 @@
 import * as gradleParser from 'gradle-to-js/lib/parser';
 
-// GitHub Enterprise configuration
+// GitHub configuration (supports public GitHub and Enterprise)
 export type GitHubConfig = {
   repo: string;              // owner/repo
   branch?: string;
   token?: string;
   enterprise?: {
     host: string;            // github.company.com (without https://)
-    apiUrl?: string;         // https://github.company.com/api/v3 (optional, auto-generated if not provided)
   };
 };
 
@@ -107,6 +106,40 @@ export function extractOpenApiRelations(gradleResult: { parsed: any; rawContent:
   
   return { produces, consumes };
 }
+// Helper function to list directory contents via GitHub API
+async function listGitHubDirectory(github: GitHubConfig, dirPath: string): Promise<any[]> {
+  const [owner, repo] = github.repo.split('/');
+  const branch = github.branch ?? 'main';
+  
+  let apiUrl: string;
+  if (github.enterprise) {
+    // GitHub Enterprise API: https://github.company.com/api/v3
+    apiUrl = `https://${github.enterprise.host}/api/v3/repos/${owner}/${repo}/contents/${dirPath}?ref=${branch}`;
+  } else {
+    // Public GitHub API
+    apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${dirPath}?ref=${branch}`;
+  }
+  
+  const headers: Record<string, string> = {
+    'Accept': 'application/vnd.github.v3+json',
+  };
+  
+  if (github.token) {
+    headers['Authorization'] = `token ${github.token}`;
+  }
+
+  try {
+    const response = await fetch(apiUrl, { headers });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    return await response.json();
+  } catch (error: any) {
+    const host = github.enterprise ? github.enterprise.host : 'github.com';
+    throw new Error(`Failed to list ${host}/${owner}/${repo}/${dirPath}: ${error.message || error}`);
+  }
+}
+
 // Recursively list all OpenAPI files in contracts/{bounded-context}/openapi/{api}/{version}.yaml
 export async function fetchAllOpenApiDefinitionsFromContracts(github: GitHubConfig, contractsPath = 'contracts'): Promise<Array<{
   boundedContext: string;
@@ -115,57 +148,46 @@ export async function fetchAllOpenApiDefinitionsFromContracts(github: GitHubConf
   filePath: string;
   rawYaml: string;
 }>> {
-  const [owner, repo] = github.repo.split('/');
-  
-  // Configure Octokit for enterprise or public GitHub
-  const octokitOptions: any = {
-    auth: github.token,
-  };
-  
-  if (github.enterprise) {
-    const apiUrl = github.enterprise.apiUrl || `https://${github.enterprise.host}/api/v3`;
-    octokitOptions.baseUrl = apiUrl;
-  }
-  
-  const octokit = new Octokit(octokitOptions);
   const results: Array<{boundedContext: string; api: string; version: string; filePath: string; rawYaml: string;}> = [];
 
   try {
     // List bounded contexts
-    const bcs = await octokit.repos.getContent({ owner, repo, path: contractsPath, ref: github.branch ?? 'main' });
-    if (!Array.isArray(bcs.data)) return results;
+    const bcs = await listGitHubDirectory(github, contractsPath);
+    if (!Array.isArray(bcs)) return results;
     
-    for (const bc of bcs.data) {
+    for (const bc of bcs) {
       if (bc.type !== 'dir') continue;
       const bcName = bc.name;
       
       // List openapi folder
-      let openapiDir;
+      let openapiDir: any[] = [];
       try {
-        openapiDir = await octokit.repos.getContent({ owner, repo, path: `${contractsPath}/${bcName}/openapi`, ref: github.branch ?? 'main' });
+        openapiDir = await listGitHubDirectory(github, `${contractsPath}/${bcName}/openapi`);
       } catch { continue; }
-      if (!Array.isArray(openapiDir.data)) continue;
+      if (!Array.isArray(openapiDir)) continue;
       
-      for (const apiDir of openapiDir.data) {
+      for (const apiDir of openapiDir) {
         if (apiDir.type !== 'dir') continue;
         const apiName = apiDir.name;
         
         // List versioned yaml files
-        let versions;
+        let versions: any[] = [];
         try {
-          versions = await octokit.repos.getContent({ owner, repo, path: `${contractsPath}/${bcName}/openapi/${apiName}`, ref: github.branch ?? 'main' });
+          versions = await listGitHubDirectory(github, `${contractsPath}/${bcName}/openapi/${apiName}`);
         } catch { continue; }
-        if (!Array.isArray(versions.data)) continue;
+        if (!Array.isArray(versions)) continue;
         
-        for (const vfile of versions.data) {
+        for (const vfile of versions) {
           if (vfile.type !== 'file' || !vfile.name.match(/^v[0-9]+\.ya?ml$/)) continue;
           const version = vfile.name.replace(/\.ya?ml$/, '');
           const filePath = `${contractsPath}/${bcName}/openapi/${apiName}/${vfile.name}`;
           
-          const fileRes = await octokit.repos.getContent({ owner, repo, path: filePath, ref: github.branch ?? 'main' });
-          // @ts-ignore
-          const rawYaml = Buffer.from(fileRes.data.content, 'base64').toString('utf8');
-          results.push({ boundedContext: bcName, api: apiName, version, filePath, rawYaml });
+          try {
+            const rawYaml = await fetchFileFromGitHub(github, filePath);
+            results.push({ boundedContext: bcName, api: apiName, version, filePath, rawYaml });
+          } catch (error: any) {
+            console.warn(`Failed to fetch ${filePath}: ${error.message}`);
+          }
         }
       }
     }
@@ -177,30 +199,38 @@ export async function fetchAllOpenApiDefinitionsFromContracts(github: GitHubConf
   return results;
 }
 
-import { Octokit } from '@octokit/rest';
-
 export async function fetchFileFromGitHub(github: GitHubConfig, path: string): Promise<string> {
   const [owner, repo] = github.repo.split('/');
+  const branch = github.branch ?? 'main';
   
-  // Configure Octokit for enterprise or public GitHub
-  const octokitOptions: any = {
-    auth: github.token,
-  };
-  
+  // Build raw content URL
+  let url: string;
   if (github.enterprise) {
-    // GitHub Enterprise configuration
-    const apiUrl = github.enterprise.apiUrl || `https://${github.enterprise.host}/api/v3`;
-    octokitOptions.baseUrl = apiUrl;
+    // GitHub Enterprise raw URL: https://github.company.com/raw/owner/repo/branch/path
+    url = `https://${github.enterprise.host}/raw/${owner}/${repo}/${branch}/${path}`;
+  } else {
+    // Public GitHub raw URL: https://raw.githubusercontent.com/owner/repo/branch/path
+    url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`;
   }
   
-  const octokit = new Octokit(octokitOptions);
+  const headers: Record<string, string> = {
+    'Accept': 'text/plain',
+  };
+  
+  if (github.token) {
+    headers['Authorization'] = `token ${github.token}`;
+  }
 
   try {
-    const res = await octokit.repos.getContent({ owner, repo, path, ref: github.branch ?? 'main' });
-    // @ts-ignore
-    return Array.isArray(res.data) ? '' : Buffer.from(res.data.content, 'base64').toString('utf8');
+    const response = await fetch(url, { headers });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    return await response.text();
   } catch (error: any) {
     const host = github.enterprise ? github.enterprise.host : 'github.com';
-    throw new Error(`Failed to fetch ${owner}/${repo}/${path} from ${host} (ref: ${github.branch ?? 'main'}): ${error.message || error}`);
+    throw new Error(`Failed to fetch ${owner}/${repo}/${path} from ${host} (ref: ${branch}): ${error.message || error}`);
   }
 }
