@@ -4,7 +4,7 @@ import path from 'path';
 import { Logger } from 'winston';
 import { CatalogClient } from '@backstage/catalog-client';
 import { Entity } from '@backstage/catalog-model';
-import { fetchFileFromGitHub, GitHubConfig, fetchAllOpenApiDefinitionsFromContracts, fetchAndParseBuildGradle, extractOpenApiRelations } from './fetcher';
+import { fetchFileFromGitHub, GitHubConfig, fetchAllOpenApiDefinitionsFromContracts, fetchAllAvroSchemasFromContracts, fetchAndParseBuildGradle, extractOpenApiRelations } from './fetcher';
 import { applicationSchema, squadSchema, boundedContextSchema } from './schemas';
 import { applicationToComponent, squadToGroup, boundedContextToDomain, domainToDomain, apiJsonToApiEntity } from './transformer';
 
@@ -68,6 +68,31 @@ export class StaticDataProvider {
         entities.push(apiEntity);
       }
 
+      // Ingest Avro schemas from contracts avro folders
+      const avroSchemas = await fetchAllAvroSchemasFromContracts(github, 'contracts');
+      for (const schema of avroSchemas) {
+        // Parse Avro schema to extract type
+        let schemaType = 'record';
+        if (schema.parsedSchema) {
+          schemaType = schema.parsedSchema.type || 'record';
+        }
+        
+        const avroApiEntity = apiJsonToApiEntity({
+          id: `${schema.boundedContext}-${schema.schemaName}`,
+          name: `${schema.schemaName} (Avro)`,
+          description: `Avro schema ${schema.schemaName} for bounded context ${schema.boundedContext}. Type: ${schemaType}`,
+          type: 'avro',
+          systemId: schema.boundedContext,
+          ownerSquadId: bcOwnerMap[schema.boundedContext] || 'unknown',
+          lifecycle: 'production',
+          definition: schema.rawSchema,
+          tags: ['avro', schemaType],
+          visibility: 'public',
+          version: '1.0',
+        });
+        entities.push(avroApiEntity);
+      }
+
       // Validate and ingest other entities
       const validateApp = this.ajv.compile(applicationSchema as any);
       const validateSquad = this.ajv.compile(squadSchema as any);
@@ -77,6 +102,7 @@ export class StaticDataProvider {
       const apiEntityNames = new Set(entities.filter(e => e.kind === 'API').map(e => e.metadata.name));
       
       logger.info(`StaticDataProvider: Found ${apiEntityNames.size} API entities: ${Array.from(apiEntityNames).join(', ')}`);
+      logger.info(`StaticDataProvider: Found ${avroSchemas.length} Avro schemas`);
 
       for (const a of apps) {
         if (!validateApp(a)) {

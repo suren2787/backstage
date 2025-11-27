@@ -5,6 +5,8 @@
     "rootDir": "src",
     "emitDeclarationOnly": false,
     "declaration": false,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
     "module": "commonjs",
     "target": "ES2022"
   },

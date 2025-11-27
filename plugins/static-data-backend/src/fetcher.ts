@@ -199,6 +199,60 @@ export async function fetchAllOpenApiDefinitionsFromContracts(github: GitHubConf
   return results;
 }
 
+// Recursively list all Avro schema files in contracts/{bounded-context}/avro/*.avsc
+export async function fetchAllAvroSchemasFromContracts(github: GitHubConfig, contractsPath = 'contracts'): Promise<Array<{
+  boundedContext: string;
+  schemaName: string;
+  filePath: string;
+  rawSchema: string;
+  parsedSchema?: any;
+}>> {
+  const results: Array<{boundedContext: string; schemaName: string; filePath: string; rawSchema: string; parsedSchema?: any;}> = [];
+
+  try {
+    // List bounded contexts
+    const bcs = await listGitHubDirectory(github, contractsPath);
+    if (!Array.isArray(bcs)) return results;
+    
+    for (const bc of bcs) {
+      if (bc.type !== 'dir') continue;
+      const bcName = bc.name;
+      
+      // List avro folder
+      let avroDir: any[] = [];
+      try {
+        avroDir = await listGitHubDirectory(github, `${contractsPath}/${bcName}/avro`);
+      } catch { continue; }
+      if (!Array.isArray(avroDir)) continue;
+      
+      for (const schemaFile of avroDir) {
+        if (schemaFile.type !== 'file' || !schemaFile.name.match(/\.avsc$/)) continue;
+        
+        const schemaName = schemaFile.name.replace(/\.avsc$/, '');
+        const filePath = `${contractsPath}/${bcName}/avro/${schemaFile.name}`;
+        
+        try {
+          const rawSchema = await fetchFileFromGitHub(github, filePath);
+          let parsedSchema: any;
+          try {
+            parsedSchema = JSON.parse(rawSchema);
+          } catch (e) {
+            console.warn(`Failed to parse Avro schema ${filePath}: ${e}`);
+          }
+          results.push({ boundedContext: bcName, schemaName, filePath, rawSchema, parsedSchema });
+        } catch (error: any) {
+          console.warn(`Failed to fetch ${filePath}: ${error.message}`);
+        }
+      }
+    }
+  } catch (error: any) {
+    const host = github.enterprise ? github.enterprise.host : 'github.com';
+    console.error(`Failed to fetch Avro schemas from ${host}:`, error);
+  }
+  
+  return results;
+}
+
 export async function fetchFileFromGitHub(github: GitHubConfig, path: string): Promise<string> {
   const [owner, repo] = github.repo.split('/');
   const branch = github.branch ?? 'main';
