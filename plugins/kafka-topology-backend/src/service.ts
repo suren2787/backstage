@@ -47,9 +47,9 @@ export async function createRouter(options: {
           updated_at: new Date().toISOString(),
         });
       }
-      res.json({ message: 'Kafka topology data refreshed from GitHub', count: contexts.length });
+      return res.json({ message: 'Kafka topology data refreshed from GitHub', count: contexts.length });
     } catch (e) {
-      res.status(500).json({ error: 'Failed to refresh Kafka topology data', details: (e as Error).message });
+      return res.status(500).json({ error: 'Failed to refresh Kafka topology data', details: (e as Error).message });
     }
   });
 
