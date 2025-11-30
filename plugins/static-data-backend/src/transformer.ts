@@ -10,21 +10,29 @@
 // tags -> metadata.tags
 // visibility -> spec.visibility
 // version -> spec.version
+// namespace -> metadata.namespace (optional, for organizing by bounded context)
 export function apiJsonToApiEntity(api: any): Entity {
   const annotations: Record<string, string> = {
     'backstage.io/managed-by-location': 'static-data:import',
     'backstage.io/managed-by-origin-location': 'static-data:import',
   };
+  const metadata: any = {
+    name: api.id,
+    title: api.name,
+    description: api.description,
+    tags: api.tags || [],
+    annotations,
+  };
+  
+  // Add namespace if provided (helps organize APIs by bounded context)
+  if (api.namespace) {
+    metadata.namespace = api.namespace;
+  }
+  
   return {
     apiVersion: 'backstage.io/v1alpha1',
     kind: 'API',
-    metadata: {
-      name: api.id,
-      title: api.name,
-      description: api.description,
-      tags: api.tags || [],
-      annotations,
-    },
+    metadata,
     spec: {
       type: api.type,
       lifecycle: api.lifecycle || 'production',

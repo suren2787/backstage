@@ -1,12 +1,28 @@
 import Ajv from 'ajv';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { Logger } from 'winston';
 import { CatalogClient } from '@backstage/catalog-client';
 import { Entity } from '@backstage/catalog-model';
 import { fetchFileFromGitHub, GitHubConfig, fetchAllOpenApiDefinitionsFromContracts, fetchAllAvroSchemasFromContracts, fetchAndParseBuildGradle, extractOpenApiRelations } from './fetcher';
 import { applicationSchema, squadSchema, boundedContextSchema } from './schemas';
 import { applicationToComponent, squadToGroup, boundedContextToDomain, domainToDomain, apiJsonToApiEntity } from './transformer';
+
+// Helper function to sanitize entity names to 63 characters or less
+// If name exceeds limit, truncates and appends hash of full name
+function sanitizeEntityName(fullName: string): string {
+  if (fullName.length <= 63) {
+    return fullName;
+  }
+  
+  // Create a short hash of the full name
+  const hash = crypto.createHash('md5').update(fullName).digest('hex').substring(0, 6);
+  
+  // Reserve space for hyphen and hash (7 chars total)
+  const maxPrefix = 63 - 7;
+  return `${fullName.substring(0, maxPrefix)}-${hash}`;
+}
 
 export type StaticDataProviderOptions = {
   logger: Logger;
@@ -43,22 +59,34 @@ export class StaticDataProvider {
       const domains = JSON.parse(domainsRaw);
 
       // Map bounded context name to ownerSquadId for API entity mapping
+      // Also create references to actual Group and System entities
       const bcOwnerMap: Record<string, string> = {};
+      const bcSystemMap: Record<string, string> = {};
       for (const bc of bcs) {
-        if (bc.id && bc.ownerSquadId) bcOwnerMap[bc.id] = bc.ownerSquadId;
-        if (bc.name && bc.ownerSquadId) bcOwnerMap[bc.name] = bc.ownerSquadId;
+        if (bc.id && bc.ownerSquadId) {
+          bcOwnerMap[bc.id] = bc.ownerSquadId;
+          // Store as group reference format: group:namespace/name
+          bcSystemMap[bc.id] = `group:default/${bc.ownerSquadId}`;
+        }
+        if (bc.name && bc.ownerSquadId) {
+          bcOwnerMap[bc.name] = bc.ownerSquadId;
+          bcSystemMap[bc.name] = `group:default/${bc.ownerSquadId}`;
+        }
       }
 
       // Ingest APIs from contracts openapi folders
       const openapiDefs = await fetchAllOpenApiDefinitionsFromContracts(github, 'contracts');
       for (const def of openapiDefs) {
+        // Use namespace for bounded context, keep ID short (under 63 chars)
+        const entityId = sanitizeEntityName(`${def.api}-${def.version}`);
         const apiEntity = apiJsonToApiEntity({
-          id: `${def.boundedContext}-${def.api}-${def.version}`,
+          id: entityId,
           name: `${def.api} (${def.version})`,
+          namespace: def.boundedContext,
           description: `API ${def.api} for bounded context ${def.boundedContext}, version ${def.version}`,
           type: 'openapi',
-          systemId: def.boundedContext,
-          ownerSquadId: bcOwnerMap[def.boundedContext] || 'unknown',
+          systemId: `system:default/${def.boundedContext}`,
+          ownerSquadId: bcSystemMap[def.boundedContext] || 'unknown',
           lifecycle: 'production',
           definition: def.rawYaml,
           tags: [],
@@ -77,13 +105,16 @@ export class StaticDataProvider {
           schemaType = schema.parsedSchema.type || 'record';
         }
         
+        // Use namespace for bounded context, keep ID short (under 63 chars)
+        const entityId = sanitizeEntityName(`${schema.schemaName}-${schema.version}`);
         const avroApiEntity = apiJsonToApiEntity({
-          id: `${schema.boundedContext}-${schema.schemaName}-${schema.version}`,
+          id: entityId,
           name: `${schema.schemaName} (${schema.version})`,
+          namespace: schema.boundedContext,
           description: `Avro schema ${schema.schemaName} for bounded context ${schema.boundedContext}. Type: ${schemaType}. Version: ${schema.version}`,
           type: 'avro',
-          systemId: schema.boundedContext,
-          ownerSquadId: bcOwnerMap[schema.boundedContext] || 'unknown',
+          systemId: `system:default/${schema.boundedContext}`,
+          ownerSquadId: bcSystemMap[schema.boundedContext] || 'unknown',
           lifecycle: 'production',
           definition: schema.rawSchema,
           tags: ['avro', schemaType],
