@@ -78,9 +78,9 @@ export class StaticDataProvider {
         }
         
         const avroApiEntity = apiJsonToApiEntity({
-          id: `${schema.boundedContext}-${schema.schemaName}`,
-          name: `${schema.schemaName} (Avro)`,
-          description: `Avro schema ${schema.schemaName} for bounded context ${schema.boundedContext}. Type: ${schemaType}`,
+          id: `${schema.boundedContext}-${schema.schemaName}-${schema.version}`,
+          name: `${schema.schemaName} (${schema.version})`,
+          description: `Avro schema ${schema.schemaName} for bounded context ${schema.boundedContext}. Type: ${schemaType}. Version: ${schema.version}`,
           type: 'avro',
           systemId: schema.boundedContext,
           ownerSquadId: bcOwnerMap[schema.boundedContext] || 'unknown',
@@ -88,7 +88,7 @@ export class StaticDataProvider {
           definition: schema.rawSchema,
           tags: ['avro', schemaType],
           visibility: 'public',
-          version: '1.0',
+          version: schema.version,
         });
         entities.push(avroApiEntity);
       }

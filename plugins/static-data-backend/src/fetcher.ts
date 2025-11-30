@@ -199,15 +199,16 @@ export async function fetchAllOpenApiDefinitionsFromContracts(github: GitHubConf
   return results;
 }
 
-// Recursively list all Avro schema files in contracts/{bounded-context}/avro/*.avsc
+// Recursively list all Avro schema files in contracts/{bounded-context}/avro/{schemaName}/{schemaName}-{version}.avsc
 export async function fetchAllAvroSchemasFromContracts(github: GitHubConfig, contractsPath = 'contracts'): Promise<Array<{
   boundedContext: string;
   schemaName: string;
+  version: string;
   filePath: string;
   rawSchema: string;
   parsedSchema?: any;
 }>> {
-  const results: Array<{boundedContext: string; schemaName: string; filePath: string; rawSchema: string; parsedSchema?: any;}> = [];
+  const results: Array<{boundedContext: string; schemaName: string; version: string; filePath: string; rawSchema: string; parsedSchema?: any;}> = [];
 
   try {
     // List bounded contexts
@@ -225,23 +226,38 @@ export async function fetchAllAvroSchemasFromContracts(github: GitHubConfig, con
       } catch { continue; }
       if (!Array.isArray(avroDir)) continue;
       
-      for (const schemaFile of avroDir) {
-        if (schemaFile.type !== 'file' || !schemaFile.name.match(/\.avsc$/)) continue;
+      // Each item in avroDir is a schema name folder (e.g., CardIssuedEvent)
+      for (const schemaFolder of avroDir) {
+        if (schemaFolder.type !== 'dir') continue;
+        const schemaName = schemaFolder.name;
         
-        const schemaName = schemaFile.name.replace(/\.avsc$/, '');
-        const filePath = `${contractsPath}/${bcName}/avro/${schemaFile.name}`;
-        
+        // List version files inside schema folder (e.g., CardIssuedEvent-v1.avsc, CardIssuedEvent-v2.avsc)
+        let versions: any[] = [];
         try {
-          const rawSchema = await fetchFileFromGitHub(github, filePath);
-          let parsedSchema: any;
+          versions = await listGitHubDirectory(github, `${contractsPath}/${bcName}/avro/${schemaName}`);
+        } catch { continue; }
+        if (!Array.isArray(versions)) continue;
+        
+        for (const versionFile of versions) {
+          if (versionFile.type !== 'file' || !versionFile.name.match(/^v[0-9]+\.avsc$/)) continue;
+          
+          // Extract version from filename: v{number}.avsc -> v{number}
+          // e.g., v1.avsc -> v1
+          const version = versionFile.name.replace(/\.avsc$/, '');
+          const filePath = `${contractsPath}/${bcName}/avro/${schemaName}/${versionFile.name}`;
+          
           try {
-            parsedSchema = JSON.parse(rawSchema);
-          } catch (e) {
-            console.warn(`Failed to parse Avro schema ${filePath}: ${e}`);
+            const rawSchema = await fetchFileFromGitHub(github, filePath);
+            let parsedSchema: any;
+            try {
+              parsedSchema = JSON.parse(rawSchema);
+            } catch (e) {
+              console.warn(`Failed to parse Avro schema ${filePath}: ${e}`);
+            }
+            results.push({ boundedContext: bcName, schemaName, version, filePath, rawSchema, parsedSchema });
+          } catch (error: any) {
+            console.warn(`Failed to fetch ${filePath}: ${error.message}`);
           }
-          results.push({ boundedContext: bcName, schemaName, filePath, rawSchema, parsedSchema });
-        } catch (error: any) {
-          console.warn(`Failed to fetch ${filePath}: ${error.message}`);
         }
       }
     }
