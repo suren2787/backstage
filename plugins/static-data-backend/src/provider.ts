@@ -89,9 +89,11 @@ export class StaticDataProvider {
           ownerSquadId: bcSystemMap[def.boundedContext] || 'unknown',
           lifecycle: 'production',
           definition: def.rawYaml,
-          tags: [],
+          tags: ['openapi', 'rest-api', 'external-contract'],
           visibility: 'public',
           version: def.version,
+          color: '#1f77b4',
+          icon: 'api',
         });
         entities.push(apiEntity);
       }
@@ -99,10 +101,48 @@ export class StaticDataProvider {
       // Ingest Avro schemas from contracts avro folders
       const avroSchemas = await fetchAllAvroSchemasFromContracts(github, 'contracts');
       for (const schema of avroSchemas) {
-        // Parse Avro schema to extract type
+        // Parse Avro schema to extract type and metadata
         let schemaType = 'record';
+        let moxMetaType = 'schema'; // default
+        
         if (schema.parsedSchema) {
           schemaType = schema.parsedSchema.type || 'record';
+          
+          // Check for custom mox-meta.type field in the schema
+          if (schema.parsedSchema['mox-meta']?.type) {
+            moxMetaType = schema.parsedSchema['mox-meta'].type;
+          }
+        }
+        
+        // Determine color and tags based on mox-meta.type
+        let color = '#ff7f0e'; // default orange for schema
+        let tags = ['avro', 'schema', schemaType];
+        
+        // Color coding based on mox-meta type
+        switch (moxMetaType.toLowerCase()) {
+          case 'event':
+            color = '#2ca02c'; // green for events
+            tags.push('event');
+            break;
+          case 'command':
+            color = '#d62728'; // red for commands
+            tags.push('command');
+            break;
+          case 'snapshot':
+            color = '#9467bd'; // purple for snapshots
+            tags.push('snapshot');
+            break;
+          case 'query':
+            color = '#17becf'; // cyan for queries
+            tags.push('query');
+            break;
+          case 'value-object':
+            color = '#bcbd22'; // yellow-green for value objects
+            tags.push('value-object');
+            break;
+          default:
+            // Keep default color
+            tags.push('schema');
         }
         
         // Use namespace for bounded context, keep ID short (under 63 chars)
@@ -111,15 +151,17 @@ export class StaticDataProvider {
           id: entityId,
           name: `${schema.schemaName} (${schema.version})`,
           namespace: schema.boundedContext,
-          description: `Avro schema ${schema.schemaName} for bounded context ${schema.boundedContext}. Type: ${schemaType}. Version: ${schema.version}`,
+          description: `Avro schema ${schema.schemaName} for bounded context ${schema.boundedContext}. Type: ${moxMetaType} (${schemaType}). Version: ${schema.version}`,
           type: 'avro',
           systemId: `system:default/${schema.boundedContext}`,
           ownerSquadId: bcSystemMap[schema.boundedContext] || 'unknown',
           lifecycle: 'production',
           definition: schema.rawSchema,
-          tags: ['avro', schemaType],
+          tags: tags,
           visibility: 'public',
           version: schema.version,
+          color: color,
+          icon: 'schema',
         });
         entities.push(avroApiEntity);
       }

@@ -11,11 +11,24 @@
 // visibility -> spec.visibility
 // version -> spec.version
 // namespace -> metadata.namespace (optional, for organizing by bounded context)
+// color -> metadata.annotations['backstage.io/color'] (optional, for graph visualization)
+// icon -> metadata.annotations['backstage.io/icon'] (optional, for icon display)
 export function apiJsonToApiEntity(api: any): Entity {
   const annotations: Record<string, string> = {
     'backstage.io/managed-by-location': 'static-data:import',
     'backstage.io/managed-by-origin-location': 'static-data:import',
   };
+  
+  // Add color annotation if provided
+  if (api.color) {
+    annotations['backstage.io/color'] = api.color;
+  }
+  
+  // Add icon annotation if provided
+  if (api.icon) {
+    annotations['backstage.io/icon'] = api.icon;
+  }
+  
   const metadata: any = {
     name: api.id,
     title: api.name,
